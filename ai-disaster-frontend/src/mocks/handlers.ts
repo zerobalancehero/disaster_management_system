@@ -22,8 +22,15 @@ const strip = ({ username: _a, password: _b, ...u }: (typeof db.users)[number]) 
 
 export const handlers = [
   http.post(`${B}/auth/login`, async ({ request }) => {
-    const { username, password } = (await request.json()) as { username: string; password: string }
-    const u = db.users.find((x) => x.username === username && x.password === password)
+    const body = (await request.json()) as { username?: string; email?: string; password: string }
+    const identifier = (body.email ?? body.username ?? '').toLowerCase()
+    const u = db.users.find(
+      (x) =>
+        (x.username.toLowerCase() === identifier ||
+          (x.email && x.email.toLowerCase() === identifier) ||
+          identifier.startsWith(x.username.toLowerCase())) &&
+        x.password === body.password
+    )
     if (!u) return err(401, 'Invalid credentials')
     db.session = u.id
     return HttpResponse.json(strip(u))

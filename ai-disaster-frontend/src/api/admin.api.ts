@@ -82,7 +82,6 @@ export const verifyIncident = async (id: string): Promise<Incident> => {
 export const rejectIncident = async (id: string, reason: string): Promise<Incident> => {
   const r = await api.patch(`/admin/incidents/${id}/reject`, {
     rejectionReason: reason,
-    reason, // fallback for mock handlers
   })
   return mapIncident(r.data as RawIncident)
 }

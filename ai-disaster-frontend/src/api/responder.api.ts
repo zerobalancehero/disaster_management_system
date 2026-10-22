@@ -68,7 +68,6 @@ export const updateAssignmentStatus = async (
 ): Promise<AssignmentView> => {
   const r = await api.patch(`/responder/my-assignments/${id}/status`, {
     newStatus: status,
-    status, // fallback for mock handlers
     notes: `Transitioned status to ${status}`,
   })
   return mapAssignment(r.data as RawAssignment)
@@ -77,7 +76,6 @@ export const updateAssignmentStatus = async (
 export const setTeamAvailability = async (available: boolean): Promise<unknown> => {
   const r = await api.patch('/responder/team/status', {
     availabilityStatus: available ? 'AVAILABLE' : 'OFF_DUTY',
-    available, // fallback for mock handlers
   })
   return r.data
 }

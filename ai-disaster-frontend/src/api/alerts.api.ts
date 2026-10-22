@@ -70,12 +70,10 @@ export const reportIncident = async (b: IncidentReportRequest): Promise<Incident
     description: b.description,
     disasterType: b.type,
     severity: b.severity || 'MEDIUM',
-    latitude: b.lat,
-    longitude: b.lon,
-    // fallback keys for mock handlers
-    type: b.type,
-    lat: b.lat,
-    lon: b.lon,
+    location: {
+      latitude: b.lat,
+      longitude: b.lon,
+    },
   }
   const r = await api.post('/incidents/reports', payload)
   return mapIncident(r.data as RawIncident)

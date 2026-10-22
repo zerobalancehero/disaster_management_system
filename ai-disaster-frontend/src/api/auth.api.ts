@@ -48,7 +48,6 @@ export const login = async (b: { username: string; password: string }): Promise<
   const payload = {
     email,
     password: b.password,
-    username: b.username, // keep for mock handlers if enabled
   }
 
   const response = await api.post('/auth/login', payload)
