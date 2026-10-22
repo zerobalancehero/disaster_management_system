@@ -26,4 +26,10 @@ public class AuthController {
         LoginResponse response = authService.login(request);
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/logout")
+    @Operation(summary = "Stateless logout for JWT Bearer token")
+    public ResponseEntity<java.util.Map<String, String>> logout() {
+        return ResponseEntity.ok(java.util.Map.of("message", "Logged out successfully"));
+    }
 }

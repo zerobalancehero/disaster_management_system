@@ -103,9 +103,4 @@ export const getMe = async (): Promise<User | null> => {
 export const logout = async (): Promise<void> => {
   localStorage.removeItem('disaster_token')
   localStorage.removeItem('disaster_user')
-  try {
-    await api.post('/auth/logout')
-  } catch {
-    // Backend JWT logout is stateless
-  }
 }

@@ -1,9 +1,18 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../features/auth/AuthContext'
 import { config } from '../lib/config'
 
 export default function Layout() {
   const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+    } finally {
+      navigate('/login', { replace: true })
+    }
+  }
 
   const roleTheme = {
     ADMIN: 'from-red-600/20 to-transparent border-red-500/30 text-red-400',
@@ -42,7 +51,7 @@ export default function Layout() {
             </div>
             <button
               className="rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-1.5 font-medium text-slate-300 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 transition-all cursor-pointer"
-              onClick={() => void logout()}
+              onClick={handleLogout}
             >
               Log out
             </button>

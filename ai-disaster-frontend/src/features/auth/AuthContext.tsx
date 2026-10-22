@@ -13,41 +13,48 @@ const AuthCtx = createContext<Ctx | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient()
-  const [localUser, setLocalUser] = useState<User | null>(() => authApi.getStoredUser())
+  const [user, setUser] = useState<User | null>(() => authApi.getStoredUser())
 
   const me = useQuery<User | null, ApiError>({
     queryKey: ['me'],
-    queryFn: () =>
-      authApi.getMe().catch((e: ApiError) => {
-        if (e.status === 401) {
-          setLocalUser(null)
+    queryFn: async () => {
+      try {
+        const u = await authApi.getMe()
+        if (u) {
+          setUser(u)
+        }
+        return u
+      } catch (e) {
+        const err = e as ApiError
+        if (err.status === 401) {
+          setUser(null)
           return null
         }
         throw e
-      }),
+      }
+    },
     staleTime: 5 * 60 * 1000,
   })
 
   const login = async (creds: { username: string; password: string }): Promise<User> => {
     const u = await authApi.login(creds)
-    setLocalUser(u)
+    setUser(u)
     qc.setQueryData(['me'], u)
     return u
   }
 
   const logout = async (): Promise<void> => {
-    setLocalUser(null)
-    qc.clear()
+    setUser(null)
     qc.setQueryData(['me'], null)
+    qc.removeQueries()
     await authApi.logout()
   }
 
-  const activeUser = me.data !== undefined ? me.data : localUser
   const hasToken = typeof window !== 'undefined' && Boolean(localStorage.getItem('disaster_token'))
-  const loading = me.isLoading && !activeUser && hasToken
+  const loading = me.isLoading && !user && hasToken
 
   return (
-    <AuthCtx.Provider value={{ user: activeUser, loading, login, logout }}>
+    <AuthCtx.Provider value={{ user, loading, login, logout }}>
       {children}
     </AuthCtx.Provider>
   )
