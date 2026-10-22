@@ -1,0 +1,14 @@
+package com.disaster.response.domain.enums;
+
+public enum CapabilityType {
+    WATER_RESCUE,
+    BOAT_OPERATIONS,
+    COLLAPSED_STRUCTURE,
+    HIGH_ANGLE_RESCUE,
+    FIRST_AID,
+    ADVANCED_LIFE_SUPPORT,
+    WILDFIRE_SUPPRESSION,
+    HAZMAT_CONTAINMENT,
+    CANINE_SEARCH,
+    EVACUATION_LOGISTICS
+}

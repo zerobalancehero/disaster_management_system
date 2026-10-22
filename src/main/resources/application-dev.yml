@@ -1,0 +1,10 @@
+# Development profile settings
+app:
+  seed:
+    enabled: true
+  ml:
+    mock-enabled: true
+
+spring:
+  jpa:
+    show-sql: false
