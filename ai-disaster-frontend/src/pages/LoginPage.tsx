@@ -1,8 +1,8 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Navigate } from 'react-router-dom'
-import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../features/auth/AuthContext'
 import { homePath } from '../lib/transitions'
 import { Btn } from '../components/ui'
@@ -13,6 +13,7 @@ type Form = z.infer<typeof schema>
 
 export default function LoginPage() {
   const { user, login } = useAuth()
+  const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
   const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<Form>({
     resolver: zodResolver(schema),
@@ -22,12 +23,27 @@ export default function LoginPage() {
     },
   })
 
-  if (user) return <Navigate to={homePath(user.role)} replace />
+  useEffect(() => {
+    if (user) {
+      navigate(homePath(user.role), { replace: true })
+    }
+  }, [user, navigate])
 
   const fillCredentials = (u: string, p: string) => {
     setValue('username', u, { shouldValidate: true })
     setValue('password', p, { shouldValidate: true })
     setError(null)
+  }
+
+  const onSubmit = async (v: Form) => {
+    setError(null)
+    try {
+      const loggedIn = await login(v)
+      navigate(homePath(loggedIn.role), { replace: true })
+    } catch (e) {
+      const err = e as ApiError
+      setError(err?.message || 'Authentication failed. Please verify credentials.')
+    }
   }
 
   return (
@@ -70,14 +86,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <form className="space-y-4" onSubmit={handleSubmit(async (v) => {
-        setError(null)
-        try {
-          await login(v)
-        } catch (e) {
-          setError((e as ApiError).message)
-        }
-      })}>
+      <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
         <div>
           <label className="block text-xs font-medium text-slate-300 mb-1">Email / Username</label>
           <input

@@ -43,6 +43,15 @@ function resolveEmail(identifier: string): string {
   return `${lower}@disaster.local`
 }
 
+export const getStoredUser = (): User | null => {
+  try {
+    const raw = localStorage.getItem('disaster_user')
+    return raw ? (JSON.parse(raw) as User) : null
+  } catch {
+    return null
+  }
+}
+
 export const login = async (b: { username: string; password: string }): Promise<User> => {
   const email = resolveEmail(b.username)
   const payload = {
@@ -58,25 +67,33 @@ export const login = async (b: { username: string; password: string }): Promise<
     const token = String((data as { token: string }).token)
     localStorage.setItem('disaster_token', token)
     const rawUser = (data as { user?: unknown }).user ?? data
-    return normalizeUserPayload(rawUser)
+    const user = normalizeUserPayload(rawUser)
+    localStorage.setItem('disaster_user', JSON.stringify(user))
+    return user
   }
 
   // Fallback for mock service worker returning direct user
-  return normalizeUserPayload(data)
+  const user = normalizeUserPayload(data)
+  localStorage.setItem('disaster_user', JSON.stringify(user))
+  return user
 }
 
 export const getMe = async (): Promise<User | null> => {
   const token = localStorage.getItem('disaster_token')
   if (!token && !import.meta.env.VITE_USE_MOCKS) {
+    localStorage.removeItem('disaster_user')
     return null
   }
   try {
     const r = await api.get('/users/me')
-    return normalizeUserPayload(r.data)
+    const user = normalizeUserPayload(r.data)
+    localStorage.setItem('disaster_user', JSON.stringify(user))
+    return user
   } catch (err) {
     const error = err as ApiError
     if (error.status === 401) {
       localStorage.removeItem('disaster_token')
+      localStorage.removeItem('disaster_user')
       return null
     }
     throw error
@@ -85,6 +102,7 @@ export const getMe = async (): Promise<User | null> => {
 
 export const logout = async (): Promise<void> => {
   localStorage.removeItem('disaster_token')
+  localStorage.removeItem('disaster_user')
   try {
     await api.post('/auth/logout')
   } catch {
