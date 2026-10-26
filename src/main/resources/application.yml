@@ -55,7 +55,7 @@ app:
     enabled: ${SEED_DEV_DATA:false}
   ml:
     mock-enabled: ${ML_MOCK_ENABLED:false}
-    model-path: ${ML_MODEL_PATH:}
+    model-path: ${ML_MODEL_PATH:models/classifier_test.onnx}
     feature-schema-version: "v1.0"
   integrations:
     open-meteo:

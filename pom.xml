@@ -22,6 +22,7 @@
         <springdoc.version>2.6.0</springdoc.version>
         <jjwt.version>0.12.6</jjwt.version>
         <jts.version>1.19.0</jts.version>
+        <onnxruntime.version>1.18.0</onnxruntime.version>
     </properties>
 
     <dependencies>
@@ -49,6 +50,13 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+
+        <!-- ONNX Runtime for ML Inference -->
+        <dependency>
+            <groupId>com.microsoft.onnxruntime</groupId>
+            <artifactId>onnxruntime</artifactId>
+            <version>${onnxruntime.version}</version>
         </dependency>
 
         <!-- Spatial / GIS Dependencies -->

@@ -86,4 +86,41 @@ class MlInferenceAndFeatureValidationTest {
         assertTrue(result.riskCategory() == RiskCategory.HIGH || result.riskCategory() == RiskCategory.CRITICAL);
         assertTrue((Boolean) result.inferenceMetadata().get("synthetic"));
     }
+
+    @Test
+    @DisplayName("ONNX Runtime: Live inference with models/classifier_test.onnx produces valid risk predictions")
+    void testLiveOnnxModelInference() {
+        java.io.File modelFile = new java.io.File("models/classifier_test.onnx");
+        org.junit.jupiter.api.Assumptions.assumeTrue(modelFile.exists(), "Model file models/classifier_test.onnx must exist for live inference test");
+
+        try (ProductionModelPredictor predictor = new ProductionModelPredictor("models/classifier_test.onnx")) {
+            assertTrue(predictor.isAvailable());
+            assertEquals("PROD-ONNX-v1.0", predictor.getModelVersion());
+            assertEquals("ONNX_RUNTIME", predictor.getFramework());
+
+            // 1. Mild weather scenario
+            RiskFeatureVector mildVector = new RiskFeatureVector(
+                    UUID.randomUUID(), DisasterType.FLOOD, PredictionHorizon.NEXT_24H,
+                    25.0, 45.0, 0.0, 10.0, 50.0, 5.0, 10.0, 500.0
+            );
+            RiskPredictionResult mildResult = predictor.predict(mildVector);
+            assertNotNull(mildResult);
+            assertEquals(Boolean.FALSE, mildResult.inferenceMetadata().get("synthetic"));
+            assertEquals("ONNX_RUNTIME", mildResult.framework());
+            assertEquals("PROD-ONNX-v1.0", mildResult.modelVersion());
+            assertEquals(RiskCategory.LOW, mildResult.riskCategory());
+            assertTrue(mildResult.probability() < 0.30, "Mild weather should yield LOW probability");
+
+            // 2. Severe storm / extreme rainfall scenario
+            RiskFeatureVector stormVector = new RiskFeatureVector(
+                    UUID.randomUUID(), DisasterType.FLOOD, PredictionHorizon.NEXT_24H,
+                    28.0, 95.0, 180.0, 85.0, 10.0, 35.0, 500.0, 10.0
+            );
+            RiskPredictionResult stormResult = predictor.predict(stormVector);
+            assertNotNull(stormResult);
+            assertEquals(Boolean.FALSE, stormResult.inferenceMetadata().get("synthetic"));
+            assertTrue(stormResult.probability() >= 0.70, "Storm weather should yield elevated risk");
+            assertTrue(stormResult.riskCategory() == RiskCategory.HIGH || stormResult.riskCategory() == RiskCategory.CRITICAL);
+        }
+    }
 }

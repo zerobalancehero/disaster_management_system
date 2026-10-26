@@ -53,3 +53,11 @@ secrets.properties
 ### OS ###
 .DS_Store
 Thumbs.db
+
+### ML Models & Artifacts ###
+*.onnx
+*.bin
+*.pt
+*.pth
+*.h5
+!models/classifier_test.onnx
