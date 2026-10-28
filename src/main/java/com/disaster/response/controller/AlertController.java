@@ -1,5 +1,7 @@
 package com.disaster.response.controller;
 
+import com.disaster.response.domain.enums.AlertSeverity;
+import com.disaster.response.domain.enums.DisasterType;
 import com.disaster.response.dto.alert.DisasterAlertResponse;
 import com.disaster.response.dto.common.PagedResponse;
 import com.disaster.response.dto.instruction.SafetyInstructionResponse;
@@ -43,6 +45,17 @@ public class AlertController {
     public ResponseEntity<PagedResponse<DisasterAlertResponse>> getAlertHistory(
             @PageableDefault(size = 20, sort = "issueTime", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(PagedResponse.from(alertService.getHistoricalAlerts(pageable)));
+    }
+
+    @GetMapping("/safety-instructions")
+    @Operation(summary = "View safety instructions tailored to disaster hazard type and severity")
+    public ResponseEntity<List<SafetyInstructionResponse>> getSafetyInstructions(
+            @RequestParam("disasterType") DisasterType disasterType,
+            @RequestParam(name = "severity", required = false) AlertSeverity severity,
+            @RequestParam(name = "lang", defaultValue = "en") String lang) {
+        List<SafetyInstructionResponse> instructions =
+                instructionService.getApplicableInstructions(disasterType, severity, lang);
+        return ResponseEntity.ok(instructions);
     }
 
     @GetMapping("/{id}")

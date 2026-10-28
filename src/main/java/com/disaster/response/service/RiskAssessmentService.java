@@ -24,6 +24,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.disaster.response.dto.weather.CurrentWeatherResponse;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -36,6 +39,7 @@ public class RiskAssessmentService {
     private final RiskAssessmentRepository riskAssessmentRepository;
     private final RegionRepository regionRepository;
     private final TerrainFeatureService terrainFeatureService;
+    private final WeatherService weatherService;
     private final DisasterRiskPredictor predictor;
     private final ModelRegistryRepository modelRegistryRepository;
     private final ObjectMapper objectMapper;
@@ -44,12 +48,14 @@ public class RiskAssessmentService {
             RiskAssessmentRepository riskAssessmentRepository,
             RegionRepository regionRepository,
             TerrainFeatureService terrainFeatureService,
+            WeatherService weatherService,
             DisasterRiskPredictor predictor,
             ModelRegistryRepository modelRegistryRepository,
             ObjectMapper objectMapper) {
         this.riskAssessmentRepository = riskAssessmentRepository;
         this.regionRepository = regionRepository;
         this.terrainFeatureService = terrainFeatureService;
+        this.weatherService = weatherService;
         this.predictor = predictor;
         this.modelRegistryRepository = modelRegistryRepository;
         this.objectMapper = objectMapper;
@@ -62,14 +68,38 @@ public class RiskAssessmentService {
 
         Optional<TerrainFeature> terrainOpt = terrainFeatureService.getFeaturesForRegion(regionId);
 
+        double temp = 28.5;
+        double humidity = 78.0;
+        double rain = 45.0;
+        double wind = 25.0;
+
+        if (region.getCenterPoint() != null && weatherService != null) {
+            try {
+                CurrentWeatherResponse weather = weatherService.getCurrentWeather(
+                        region.getCenterPoint().getY(),
+                        region.getCenterPoint().getX()
+                );
+                if (weather != null) {
+                    if (weather.temperatureCelsius() != null) temp = weather.temperatureCelsius();
+                    if (weather.humidityPercent() != null) humidity = weather.humidityPercent();
+                    if (weather.rainfallMm() != null) rain = weather.rainfallMm();
+                    if (weather.windSpeedKmh() != null) wind = weather.windSpeedKmh();
+                    log.info("Populated live/cached weather features for region {}: temp={}C, humidity={}% rain={}mm, wind={}km/h (stale={})",
+                            region.getName(), temp, humidity, rain, wind, weather.isStale());
+                }
+            } catch (Exception e) {
+                log.warn("Could not retrieve weather for region {}, using baseline defaults: {}", region.getId(), e.getMessage());
+            }
+        }
+
         RiskFeatureVector vector = new RiskFeatureVector(
                 regionId,
                 disasterType,
                 horizon,
-                28.5, // Current or forecast temp
-                78.0, // Current or forecast humidity
-                45.0, // Current or forecast rainfall
-                25.0, // Wind speed
+                temp,
+                humidity,
+                rain,
+                wind,
                 terrainOpt.map(TerrainFeature::getElevation).orElse(50.0),
                 terrainOpt.map(TerrainFeature::getSlope).orElse(5.0),
                 terrainOpt.map(TerrainFeature::getFlowAccumulation).orElse(null),
@@ -103,6 +133,20 @@ public class RiskAssessmentService {
                 saved.getId(), region.getName(), saved.getProbability(), saved.getRiskCategory());
 
         return RiskAssessmentResponse.from(saved);
+    }
+
+    @Transactional
+    public List<RiskAssessmentResponse> assessAllRegionsRisk(DisasterType disasterType, PredictionHorizon horizon) {
+        List<Region> regions = regionRepository.findAll();
+        List<RiskAssessmentResponse> results = new ArrayList<>();
+        for (Region region : regions) {
+            try {
+                results.add(calculateAndSaveRisk(region.getId(), disasterType, horizon));
+            } catch (Exception e) {
+                log.error("Failed to calculate {} risk for region {}: {}", disasterType, region.getName(), e.getMessage());
+            }
+        }
+        return results;
     }
 
     @Transactional(readOnly = true)

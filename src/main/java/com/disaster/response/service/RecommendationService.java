@@ -9,9 +9,12 @@ import com.disaster.response.integration.routing.RoutingService;
 import com.disaster.response.repository.AssignmentRecommendationRepository;
 import com.disaster.response.repository.IncidentAssignmentRepository;
 import com.disaster.response.repository.IncidentRepository;
+import com.disaster.response.repository.RegionRepository;
 import com.disaster.response.repository.ResponderTeamRepository;
+import com.disaster.response.repository.RiskAssessmentRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +35,8 @@ public class RecommendationService {
     private final IncidentAssignmentRepository assignmentRepository;
     private final RoutingService routingService;
     private final AuditService auditService;
+    private final RiskAssessmentRepository riskAssessmentRepository;
+    private final RegionRepository regionRepository;
 
     public RecommendationService(
             IncidentRepository incidentRepository,
@@ -40,12 +45,27 @@ public class RecommendationService {
             IncidentAssignmentRepository assignmentRepository,
             RoutingService routingService,
             AuditService auditService) {
+        this(incidentRepository, teamRepository, recommendationRepository, assignmentRepository, routingService, auditService, null, null);
+    }
+
+    @Autowired
+    public RecommendationService(
+            IncidentRepository incidentRepository,
+            ResponderTeamRepository teamRepository,
+            AssignmentRecommendationRepository recommendationRepository,
+            IncidentAssignmentRepository assignmentRepository,
+            RoutingService routingService,
+            AuditService auditService,
+            RiskAssessmentRepository riskAssessmentRepository,
+            RegionRepository regionRepository) {
         this.incidentRepository = incidentRepository;
         this.teamRepository = teamRepository;
         this.recommendationRepository = recommendationRepository;
         this.assignmentRepository = assignmentRepository;
         this.routingService = routingService;
         this.auditService = auditService;
+        this.riskAssessmentRepository = riskAssessmentRepository;
+        this.regionRepository = regionRepository;
     }
 
     /**
@@ -90,6 +110,29 @@ public class RecommendationService {
 
         Set<CapabilityType> requiredCapabilities = getRequiredCapabilities(incident.getDisasterType());
 
+        // Check for latest AI disaster risk prediction in the incident's region
+        Optional<RiskAssessment> aiRiskOpt = Optional.empty();
+        if (regionRepository != null && riskAssessmentRepository != null && incident.getLocation() != null) {
+            List<Region> regions = regionRepository.findRegionsContainingPoint(incident.getLocation());
+            if (!regions.isEmpty()) {
+                aiRiskOpt = riskAssessmentRepository.findFirstByRegionIdAndDisasterTypeOrderByPredictionTimestampDesc(
+                        regions.get(0).getId(), incident.getDisasterType()
+                );
+            }
+        }
+
+        String aiRiskContext = "";
+        double riskUrgencyBonus = 0.0;
+        if (aiRiskOpt.isPresent()) {
+            RiskAssessment risk = aiRiskOpt.get();
+            aiRiskContext = String.format(" [AI Risk Assessment: %s (%.0f%% probability, model %s)]",
+                    risk.getRiskCategory(), risk.getProbability() * 100.0, risk.getModelVersion());
+            if (risk.getRiskCategory() == RiskCategory.HIGH || risk.getRiskCategory() == RiskCategory.CRITICAL) {
+                // In high/critical risk zones, give an additional urgency prioritization to teams with exact capability match
+                riskUrgencyBonus = 15.0;
+            }
+        }
+
         // Score each team
         record TeamScore(ResponderTeam team, double score, RoutingService.RoutingResult routing,
                          boolean capabilityMatch, String reason) {}
@@ -102,8 +145,8 @@ public class RecommendationService {
                     .anyMatch(c -> requiredCapabilities.contains(c.getCapability()));
 
             // Scoring components:
-            // 1. Capability match: 40 points
-            double capabilityScore = hasCapabilityMatch ? 40.0 : 10.0;
+            // 1. Capability match: 40 points + AI risk urgency bonus for exact match
+            double capabilityScore = hasCapabilityMatch ? (40.0 + riskUrgencyBonus) : 10.0;
 
             // 2. Proximity: max 40 points, decaying with distance
             double distancePenalty = Math.min(35.0, routing.distanceKm() * 0.4);
@@ -119,6 +162,9 @@ public class RecommendationService {
             reason.append(String.format("Estimated distance: %.1f km (%d min via %s). ",
                     routing.distanceKm(), routing.estimatedDurationMinutes(), routing.provider()));
             reason.append("Team is currently AVAILABLE.");
+            if (!aiRiskContext.isBlank()) {
+                reason.append(aiRiskContext);
+            }
 
             scoredTeams.add(new TeamScore(team, totalScore, routing, hasCapabilityMatch, reason.toString()));
         }

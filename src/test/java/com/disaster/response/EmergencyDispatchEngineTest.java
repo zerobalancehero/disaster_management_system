@@ -38,6 +38,8 @@ class EmergencyDispatchEngineTest {
     @Mock private NotificationService notificationService;
     @Mock private AuditService auditService;
     @Mock private TeamService teamService;
+    @Mock private RiskAssessmentRepository riskAssessmentRepository;
+    @Mock private RegionRepository regionRepository;
 
     private RecommendationService recommendationService;
     private AssignmentService assignmentService;
@@ -57,7 +59,9 @@ class EmergencyDispatchEngineTest {
                 recommendationRepository,
                 assignmentRepository,
                 new HaversineRoutingService(),
-                auditService
+                auditService,
+                riskAssessmentRepository,
+                regionRepository
         );
 
         assignmentService = new AssignmentService(
@@ -219,5 +223,36 @@ class EmergencyDispatchEngineTest {
 
         AssignmentResponse response = assignmentService.updateAssignmentStatus(assignmentId, validRequest, responder);
         assertEquals(AssignmentStatus.ACCEPTED, response.assignmentStatus());
+    }
+
+    @Test
+    @DisplayName("AI-Assisted Dispatch: High AI risk prediction enriches recommendation reason and urgency")
+    void testAiRiskAssessmentEnrichesRecommendation() {
+        Region coastalRegion = new Region("Coastal Zone", RegionType.MUNICIPALITY, null, GisUtil.createPoint(13.06, 80.24));
+        coastalRegion.setId(UUID.randomUUID());
+
+        RiskAssessment highRisk = new RiskAssessment(
+                coastalRegion, DisasterType.FLOOD, 0.88, RiskCategory.HIGH, PredictionHorizon.NEXT_24H,
+                "PROD-ONNX-v1.0", "{}", "{}"
+        );
+
+        when(incidentRepository.findById(verifiedIncident.getId())).thenReturn(Optional.of(verifiedIncident));
+        when(assignmentRepository.existsByIncidentIdAndAssignmentStatusNotIn(any(), any())).thenReturn(false);
+        when(teamRepository.findByAvailabilityStatus(AvailabilityStatus.AVAILABLE)).thenReturn(List.of(teamAlpha));
+        when(regionRepository.findRegionsContainingPoint(any())).thenReturn(List.of(coastalRegion));
+        when(riskAssessmentRepository.findFirstByRegionIdAndDisasterTypeOrderByPredictionTimestampDesc(eq(coastalRegion.getId()), eq(DisasterType.FLOOD)))
+                .thenReturn(Optional.of(highRisk));
+        when(recommendationRepository.save(any(AssignmentRecommendation.class))).thenAnswer(i -> {
+            AssignmentRecommendation r = i.getArgument(0);
+            r.setId(UUID.randomUUID());
+            return r;
+        });
+
+        List<RecommendationResponse> recs = recommendationService.generateRecommendations(verifiedIncident.getId(), admin);
+        assertNotNull(recs);
+        assertEquals(1, recs.size());
+        assertTrue(recs.get(0).recommendationReason().contains("AI Risk Assessment: HIGH"));
+        assertTrue(recs.get(0).recommendationReason().contains("88% probability"));
+        assertTrue(recs.get(0).recommendationReason().contains("model PROD-ONNX-v1.0"));
     }
 }

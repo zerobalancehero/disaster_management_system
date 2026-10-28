@@ -38,6 +38,7 @@ public class DevDataSeeder implements CommandLineRunner {
     private final SafetyInstructionRepository instructionRepository;
     private final RiskAssessmentRepository riskAssessmentRepository;
     private final NotificationRepository notificationRepository;
+    private final ModelRegistryRepository modelRegistryRepository;
     private final PasswordEncoder passwordEncoder;
     private final boolean seedEnabled;
 
@@ -55,6 +56,7 @@ public class DevDataSeeder implements CommandLineRunner {
             SafetyInstructionRepository instructionRepository,
             RiskAssessmentRepository riskAssessmentRepository,
             NotificationRepository notificationRepository,
+            ModelRegistryRepository modelRegistryRepository,
             PasswordEncoder passwordEncoder,
             @Value("${app.seed.enabled:false}") boolean seedEnabled) {
         this.userRepository = userRepository;
@@ -70,6 +72,7 @@ public class DevDataSeeder implements CommandLineRunner {
         this.instructionRepository = instructionRepository;
         this.riskAssessmentRepository = riskAssessmentRepository;
         this.notificationRepository = notificationRepository;
+        this.modelRegistryRepository = modelRegistryRepository;
         this.passwordEncoder = passwordEncoder;
         this.seedEnabled = seedEnabled;
     }
@@ -206,6 +209,18 @@ public class DevDataSeeder implements CommandLineRunner {
                 TargetAudience.GENERAL_PUBLIC, "en", admin
         ));
 
+        instructionRepository.save(new SafetyInstruction(
+                "Critical Flood Evacuation Protocol", DisasterType.FLOOD, AlertSeverity.EXTREME,
+                "1. Mandatory immediate evacuation of flood plains and low-lying ground floors. 2. Proceed along designated high-ground arterial routes. 3. Do not cross flooded bridges or culverts.",
+                TargetAudience.GENERAL_PUBLIC, "en", admin
+        ));
+
+        instructionRepository.save(new SafetyInstruction(
+                "High Wind & Cyclone Shelter Protocol", DisasterType.CYCLONE, AlertSeverity.SEVERE,
+                "1. Move to designated masonry cyclone shelter. 2. Secure external doors and shutter windows. 3. Disconnect power main and stay away from glass windows.",
+                TargetAudience.GENERAL_PUBLIC, "en", admin
+        ));
+
         // 8. Risk Assessment (clearly marked mock)
         riskAssessmentRepository.save(new RiskAssessment(
                 coastalZone, DisasterType.FLOOD, 0.74, RiskCategory.HIGH, PredictionHorizon.NEXT_24H,
@@ -218,6 +233,17 @@ public class DevDataSeeder implements CommandLineRunner {
                 responder, NotificationType.DISPATCH_ALERT, "Welcome to Emergency Response System",
                 "You have been registered as an active responder for Alpha Water Rescue Squad.",
                 "ResponderTeam", teamAlpha.getId().toString()
+        ));
+
+        // 10. Active Production ONNX Model Registry
+        modelRegistryRepository.save(new ModelRegistry(
+                "DisasterRiskClassifier",
+                "PROD-ONNX-v1.0",
+                "models/classifier_test.onnx",
+                "ONNX_RUNTIME",
+                true,
+                "v1.0",
+                "{\"accuracy\": 0.94, \"f1Score\": 0.92, \"trainingSamples\": 12500, \"engine\": \"Microsoft ONNX Runtime\", \"status\": \"HEALTHY\"}"
         ));
 
         log.info("Development seeding successfully completed!");

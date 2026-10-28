@@ -1,5 +1,7 @@
 package com.disaster.response.controller;
 
+import com.disaster.response.domain.enums.DisasterType;
+import com.disaster.response.domain.enums.PredictionHorizon;
 import com.disaster.response.dto.common.PagedResponse;
 import com.disaster.response.dto.risk.RegionRiskResponse;
 import com.disaster.response.dto.risk.RiskAssessmentResponse;
@@ -48,5 +50,15 @@ public class RegionalRiskController {
             @RequestParam("regionId") UUID regionId,
             @PageableDefault(size = 20, sort = "predictionTimestamp", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(PagedResponse.from(riskAssessmentService.getRiskHistory(regionId, pageable)));
+    }
+
+    @PostMapping("/calculate")
+    @Operation(summary = "Trigger on-demand AI risk calculation for a region and hazard")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<RiskAssessmentResponse> calculateRisk(
+            @RequestParam("regionId") UUID regionId,
+            @RequestParam(name = "disasterType", defaultValue = "FLOOD") DisasterType disasterType,
+            @RequestParam(name = "horizon", defaultValue = "NEXT_24H") PredictionHorizon horizon) {
+        return ResponseEntity.ok(riskAssessmentService.calculateAndSaveRisk(regionId, disasterType, horizon));
     }
 }
