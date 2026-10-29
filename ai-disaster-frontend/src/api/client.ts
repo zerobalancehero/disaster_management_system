@@ -27,8 +27,10 @@ api.interceptors.response.use(
     if (e.response?.status === 401) {
       localStorage.removeItem('disaster_token')
       localStorage.removeItem('disaster_user')
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(normalizeError(e))
   }
 )
-

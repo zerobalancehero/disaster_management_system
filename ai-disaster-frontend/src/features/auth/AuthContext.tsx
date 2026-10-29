@@ -13,7 +13,12 @@ const AuthCtx = createContext<Ctx | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient()
-  const [user, setUser] = useState<User | null>(() => authApi.getStoredUser())
+  const [user, setUser] = useState<User | null>(() => {
+    if (typeof window !== 'undefined' && !localStorage.getItem('disaster_token')) {
+      return null
+    }
+    return authApi.getStoredUser()
+  })
 
   const me = useQuery<User | null, ApiError>({
     queryKey: ['me'],
