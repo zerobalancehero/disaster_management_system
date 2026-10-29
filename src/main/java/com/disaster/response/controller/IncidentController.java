@@ -5,6 +5,7 @@ import com.disaster.response.domain.entity.User;
 import com.disaster.response.dto.common.PagedResponse;
 import com.disaster.response.dto.incident.IncidentReportRequest;
 import com.disaster.response.dto.incident.IncidentResponse;
+import com.disaster.response.exception.ResourceNotFoundException;
 import com.disaster.response.repository.UserRepository;
 import com.disaster.response.service.IncidentService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -40,7 +41,8 @@ public class IncidentController {
     public ResponseEntity<IncidentResponse> submitReport(
             @Valid @RequestBody IncidentReportRequest request,
             @AuthenticationPrincipal UserPrincipal principal) {
-        User user = userRepository.getReferenceById(principal.getId());
+        User user = userRepository.findById(principal.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + principal.getId()));
         IncidentResponse response = incidentService.reportIncident(request, user);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

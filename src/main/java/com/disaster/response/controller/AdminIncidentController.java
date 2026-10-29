@@ -12,6 +12,7 @@ import com.disaster.response.dto.incident.VerifyIncidentRequest;
 import com.disaster.response.dto.recommendation.RecommendationRejectRequest;
 import com.disaster.response.dto.recommendation.RecommendationResponse;
 import com.disaster.response.dto.report.AdminDashboardResponse;
+import com.disaster.response.exception.ResourceNotFoundException;
 import com.disaster.response.repository.UserRepository;
 import com.disaster.response.service.AssignmentService;
 import com.disaster.response.service.IncidentService;
@@ -91,7 +92,7 @@ public class AdminIncidentController {
             @PathVariable("id") UUID id,
             @Valid @RequestBody(required = false) VerifyIncidentRequest request,
             @AuthenticationPrincipal UserPrincipal principal) {
-        User admin = userRepository.getReferenceById(principal.getId());
+        User admin = getAuthenticatedUser(principal);
         return ResponseEntity.ok(incidentService.verifyIncident(id, request, admin));
     }
 
@@ -101,7 +102,7 @@ public class AdminIncidentController {
             @PathVariable("id") UUID id,
             @Valid @RequestBody RejectIncidentRequest request,
             @AuthenticationPrincipal UserPrincipal principal) {
-        User admin = userRepository.getReferenceById(principal.getId());
+        User admin = getAuthenticatedUser(principal);
         return ResponseEntity.ok(incidentService.rejectIncident(id, request, admin));
     }
 
@@ -110,7 +111,7 @@ public class AdminIncidentController {
     public ResponseEntity<List<RecommendationResponse>> generateRecommendations(
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal UserPrincipal principal) {
-        User admin = userRepository.getReferenceById(principal.getId());
+        User admin = getAuthenticatedUser(principal);
         return ResponseEntity.ok(recommendationService.generateRecommendations(id, admin));
     }
 
@@ -125,7 +126,7 @@ public class AdminIncidentController {
     public ResponseEntity<AssignmentResponse> approveRecommendation(
             @PathVariable("recommendationId") UUID recommendationId,
             @AuthenticationPrincipal UserPrincipal principal) {
-        User admin = userRepository.getReferenceById(principal.getId());
+        User admin = getAuthenticatedUser(principal);
         return ResponseEntity.ok(assignmentService.approveRecommendationAndDispatch(recommendationId, admin));
     }
 
@@ -135,8 +136,9 @@ public class AdminIncidentController {
             @PathVariable("recommendationId") UUID recommendationId,
             @Valid @RequestBody RecommendationRejectRequest request,
             @AuthenticationPrincipal UserPrincipal principal) {
-        User admin = userRepository.getReferenceById(principal.getId());
-        return ResponseEntity.ok(recommendationService.rejectRecommendation(recommendationId, request.rejectionReason(), admin));
+        User admin = getAuthenticatedUser(principal);
+        return ResponseEntity
+                .ok(recommendationService.rejectRecommendation(recommendationId, request.rejectionReason(), admin));
     }
 
     @PostMapping("/incidents/{id}/reassign")
@@ -145,7 +147,12 @@ public class AdminIncidentController {
             @PathVariable("id") UUID id,
             @Valid @RequestBody ReassignIncidentRequest request,
             @AuthenticationPrincipal UserPrincipal principal) {
-        User admin = userRepository.getReferenceById(principal.getId());
+        User admin = getAuthenticatedUser(principal);
         return ResponseEntity.ok(assignmentService.reassignIncident(id, request.reason(), admin));
+    }
+
+    private User getAuthenticatedUser(UserPrincipal principal) {
+        return userRepository.findById(principal.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + principal.getId()));
     }
 }

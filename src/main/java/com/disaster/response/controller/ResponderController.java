@@ -10,6 +10,7 @@ import com.disaster.response.dto.common.PagedResponse;
 import com.disaster.response.dto.notification.NotificationResponse;
 import com.disaster.response.dto.team.TeamResponse;
 import com.disaster.response.dto.team.UpdateTeamStatusRequest;
+import com.disaster.response.exception.ResourceNotFoundException;
 import com.disaster.response.exception.UnauthorizedActionException;
 import com.disaster.response.repository.UserRepository;
 import com.disaster.response.service.AssignmentService;
@@ -58,7 +59,7 @@ public class ResponderController {
     public ResponseEntity<PagedResponse<AssignmentResponse>> getMyAssignments(
             @AuthenticationPrincipal UserPrincipal principal,
             @PageableDefault(size = 20, sort = "assignmentTime", direction = Sort.Direction.DESC) Pageable pageable) {
-        User user = userRepository.getReferenceById(principal.getId());
+        User user = getAuthenticatedUser(principal);
         return ResponseEntity.ok(PagedResponse.from(assignmentService.getResponderAssignments(user, pageable)));
     }
 
@@ -67,7 +68,7 @@ public class ResponderController {
     public ResponseEntity<AssignmentResponse> getMyAssignmentById(
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal UserPrincipal principal) {
-        User user = userRepository.getReferenceById(principal.getId());
+        User user = getAuthenticatedUser(principal);
         return ResponseEntity.ok(assignmentService.getResponderAssignmentById(id, user));
     }
 
@@ -77,7 +78,7 @@ public class ResponderController {
             @PathVariable("id") UUID id,
             @Valid @RequestBody UpdateAssignmentStatusRequest request,
             @AuthenticationPrincipal UserPrincipal principal) {
-        User user = userRepository.getReferenceById(principal.getId());
+        User user = getAuthenticatedUser(principal);
         return ResponseEntity.ok(assignmentService.updateAssignmentStatus(id, request, user));
     }
 
@@ -87,7 +88,7 @@ public class ResponderController {
             @PathVariable("id") UUID id,
             @Valid @RequestBody ResponseUpdateRequest request,
             @AuthenticationPrincipal UserPrincipal principal) {
-        User user = userRepository.getReferenceById(principal.getId());
+        User user = getAuthenticatedUser(principal);
         return ResponseEntity.ok(assignmentService.addResponseUpdate(id, request, user));
     }
 
@@ -100,10 +101,15 @@ public class ResponderController {
         if (teamIds.isEmpty()) {
             throw new UnauthorizedActionException("You are not currently assigned to any active responder team.");
         }
-        User user = userRepository.getReferenceById(principal.getId());
+        User user = getAuthenticatedUser(principal);
         // Update first authorized team
         UUID teamId = teamIds.get(0);
         return ResponseEntity.ok(teamService.updateTeamStatus(teamId, request.availabilityStatus(), user));
+    }
+
+    private User getAuthenticatedUser(UserPrincipal principal) {
+        return userRepository.findById(principal.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + principal.getId()));
     }
 
     @GetMapping("/notifications")

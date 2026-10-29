@@ -17,6 +17,7 @@ import com.disaster.response.dto.team.CreateTeamRequest;
 import com.disaster.response.dto.team.TeamMembersRequest;
 import com.disaster.response.dto.team.TeamResponse;
 import com.disaster.response.dto.team.UpdateTeamRequest;
+import com.disaster.response.exception.ResourceNotFoundException;
 import com.disaster.response.repository.UserRepository;
 import com.disaster.response.service.*;
 import io.swagger.v3.oas.annotations.Operation;
@@ -82,7 +83,7 @@ public class AdminManagementController {
     public ResponseEntity<TeamResponse> createTeam(
             @Valid @RequestBody CreateTeamRequest request,
             @AuthenticationPrincipal UserPrincipal principal) {
-        User admin = userRepository.getReferenceById(principal.getId());
+        User admin = getAuthenticatedUser(principal);
         return ResponseEntity.status(HttpStatus.CREATED).body(teamService.createTeam(request, admin));
     }
 
@@ -92,7 +93,7 @@ public class AdminManagementController {
             @PathVariable("id") UUID id,
             @Valid @RequestBody UpdateTeamRequest request,
             @AuthenticationPrincipal UserPrincipal principal) {
-        User admin = userRepository.getReferenceById(principal.getId());
+        User admin = getAuthenticatedUser(principal);
         return ResponseEntity.ok(teamService.updateTeam(id, request, admin));
     }
 
@@ -102,7 +103,7 @@ public class AdminManagementController {
             @PathVariable("id") UUID id,
             @Valid @RequestBody TeamMembersRequest request,
             @AuthenticationPrincipal UserPrincipal principal) {
-        User admin = userRepository.getReferenceById(principal.getId());
+        User admin = getAuthenticatedUser(principal);
         return ResponseEntity.ok(teamService.setTeamMembers(id, request.userIds(), admin));
     }
 
@@ -121,7 +122,7 @@ public class AdminManagementController {
             @PathVariable("id") UUID id,
             @RequestBody Map<String, Object> updates,
             @AuthenticationPrincipal UserPrincipal principal) {
-        User admin = userRepository.getReferenceById(principal.getId());
+        User admin = getAuthenticatedUser(principal);
         String name = (String) updates.get("name");
         String phone = (String) updates.get("phone");
         Boolean active = (Boolean) updates.get("active");
@@ -135,7 +136,7 @@ public class AdminManagementController {
             @RequestBody Map<String, String> request,
             @AuthenticationPrincipal UserPrincipal principal) {
         UserRole newRole = UserRole.valueOf(request.get("role"));
-        User admin = userRepository.getReferenceById(principal.getId());
+        User admin = getAuthenticatedUser(principal);
         return ResponseEntity.ok(userService.updateUserRole(id, newRole, admin));
     }
 
@@ -158,7 +159,7 @@ public class AdminManagementController {
     public ResponseEntity<SafetyInstructionResponse> createSafetyInstruction(
             @Valid @RequestBody SafetyInstructionRequest request,
             @AuthenticationPrincipal UserPrincipal principal) {
-        User admin = userRepository.getReferenceById(principal.getId());
+        User admin = getAuthenticatedUser(principal);
         return ResponseEntity.status(HttpStatus.CREATED).body(instructionService.createInstruction(request, admin));
     }
 
@@ -168,8 +169,13 @@ public class AdminManagementController {
             @PathVariable("id") UUID id,
             @Valid @RequestBody SafetyInstructionRequest request,
             @AuthenticationPrincipal UserPrincipal principal) {
-        User admin = userRepository.getReferenceById(principal.getId());
+        User admin = getAuthenticatedUser(principal);
         return ResponseEntity.ok(instructionService.updateInstruction(id, request, admin));
+    }
+
+    private User getAuthenticatedUser(UserPrincipal principal) {
+        return userRepository.findById(principal.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + principal.getId()));
     }
 
     // --- Reports & Logs ---
