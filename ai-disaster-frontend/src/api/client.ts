@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { config } from '../lib/config'
+import { config } from './config'
 import { normalizeError } from './errors'
 
 export const api = axios.create({
@@ -7,30 +7,26 @@ export const api = axios.create({
   withCredentials: true,
 })
 
-// Attach Bearer JWT token if available
+// Attach Bearer JWT token automatically if stored
 api.interceptors.request.use((reqConfig) => {
   const token = localStorage.getItem('disaster_token')
   if (token) {
-    if (reqConfig.headers && typeof reqConfig.headers.set === 'function') {
-      reqConfig.headers.set('Authorization', `Bearer ${token}`)
-    } else {
-      reqConfig.headers = reqConfig.headers || {}
-      reqConfig.headers['Authorization'] = `Bearer ${token}`
-    }
+    reqConfig.headers.set('Authorization', `Bearer ${token}`)
   }
   return reqConfig
 })
 
+// Global response interceptor: 401 handling & structured error normalization
 api.interceptors.response.use(
-  (r) => r,
-  (e) => {
-    if (e.response?.status === 401) {
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
       localStorage.removeItem('disaster_token')
       localStorage.removeItem('disaster_user')
       if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
         window.location.href = '/login'
       }
     }
-    return Promise.reject(normalizeError(e))
+    return Promise.reject(normalizeError(error))
   }
 )

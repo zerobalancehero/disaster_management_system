@@ -47,7 +47,7 @@ function Row({ i }: { i: Incident }) {
 
       <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-400 gap-2 border-t border-slate-800/80 pt-2">
         <span>📍 Coordinates: {i.lat.toFixed(4)}, {i.lon.toFixed(4)}</span>
-        <span>🕒 Reported: {new Date(i.createdAt).toLocaleString()}</span>
+        <span>🕒 Reported: {new Date(i.createdAt ?? '').toLocaleString()}</span>
         {i.reporterName && <span>👤 Reported by: {i.reporterName}</span>}
       </div>
 
@@ -111,7 +111,7 @@ function Row({ i }: { i: Incident }) {
                     )}
                   </div>
                   <div className="text-[11px] text-slate-400 mt-0.5">
-                    Skills: {r.skills.length > 0 ? r.skills.join(', ') : 'General rescue'}
+                    Skills: {(r.skills?.length ?? 0) > 0 ? r.skills!.join(', ') : 'General rescue'}
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -210,8 +210,8 @@ export default function AdminPage() {
         <ul className="space-y-1.5 text-xs font-mono">
           {logs.data?.slice(0, 10).map((l) => (
             <li key={l.id} className="flex items-center justify-between rounded bg-slate-800/50 px-3 py-1.5 text-slate-300">
-              <span className="text-slate-400">{new Date(l.at).toLocaleTimeString()}</span>
-              <span className="font-semibold text-sky-400">{l.actor}</span>
+              <span className="text-slate-400">{new Date(l.at ?? l.timestamp ?? '').toLocaleTimeString()}</span>
+              <span className="font-semibold text-sky-400">{l.actor ?? l.actorName}</span>
               <span className="text-slate-200">{l.action}</span>
             </li>
           ))}

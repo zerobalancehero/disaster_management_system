@@ -1,11 +1,20 @@
+import { useState, useEffect } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { useState } from 'react'
+import {
+  MapContainer,
+  TileLayer,
+  CircleMarker,
+  useMap,
+  useMapEvents,
+} from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
 import { getActiveAlerts, reportIncident } from '../api/alerts.api'
 import { Badge, Btn, Card, QueryState } from '../components/ui'
 import type { Alert, ApiError } from '../types'
+import '../styles/UserPage.css'
 
 const schema = z.object({
   title: z.string().min(3, 'Title is required (min 3 characters)'),
@@ -16,29 +25,81 @@ const schema = z.object({
 })
 type Form = z.infer<typeof schema>
 
+const DEFAULT_CENTER: [number, number] = [13.0827, 80.2707]
+
+/** Fires when the user clicks anywhere on the map. */
+function MapClickHandler({
+  onPick,
+}: {
+  onPick: (lat: number, lon: number) => void
+}) {
+  useMapEvents({
+    click(e) {
+      onPick(e.latlng.lat, e.latlng.lng)
+    },
+  })
+  return null
+}
+
+/** Flies the map when lat/lon change (from presets or manual input). */
+function MapRecenter({ lat, lon }: { lat: number; lon: number }) {
+  const map = useMap()
+  useEffect(() => {
+    const center = map.getCenter()
+    if (Math.hypot(center.lat - lat, center.lng - lon) > 0.0002) {
+      map.flyTo([lat, lon], Math.max(map.getZoom(), 12), { duration: 0.6 })
+    }
+  }, [lat, lon, map])
+  return null
+}
+
 export default function UserPage() {
-  const alerts = useQuery<Alert[], ApiError>({ queryKey: ['alerts'], queryFn: getActiveAlerts })
+  const alerts = useQuery<Alert[], ApiError>({
+    queryKey: ['alerts'],
+    queryFn: getActiveAlerts,
+  })
   const [msg, setMsg] = useState<string | null>(null)
-  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<Form>({
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<Form>({
     resolver: zodResolver(schema),
     defaultValues: {
       title: 'Waterlogging & Street Flooding',
       type: 'FLOOD',
-      description: 'Rising water levels observed blocking main road and residential ground floors.',
+      description:
+        'Rising water levels observed blocking main road and residential ground floors.',
       lat: 13.0827,
       lon: 80.2707,
     },
   })
+
   const m = useMutation({
-    mutationFn: reportIncident,
+    mutationFn: (v: Form) =>
+      reportIncident({
+        title: v.title,
+        description: v.description,
+        disasterType: v.type,
+        location: { latitude: v.lat, longitude: v.lon },
+      }),
     onSuccess: (data) => {
-      setMsg(`Report #${data.id.slice(0, 8)} submitted successfully. It is now PENDING admin verification.`)
+      setMsg(
+        `Report #${(data as { id: string }).id.slice(0, 8)} submitted successfully. It is now PENDING admin verification.`
+      )
       reset()
     },
     onError: (e: ApiError) => setMsg(`Submission Failed: ${e.message}`),
   })
+
   const submit = (v: Form) => {
-    if (window.confirm('Submit this disaster incident report to Emergency Dispatch?')) {
+    if (
+      window.confirm('Submit this disaster incident report to Emergency Dispatch?')
+    ) {
       m.mutate(v)
     }
   }
@@ -48,89 +109,237 @@ export default function UserPage() {
     setValue('lon', lon, { shouldValidate: true })
   }
 
+  // watch lat/lon so the map stays in sync with the form
+  const lat = watch('lat')
+  const lon = watch('lon')
+  const hasValidLocation =
+    Number.isFinite(lat) &&
+    Number.isFinite(lon) &&
+    Math.abs(lat) <= 90 &&
+    Math.abs(lon) <= 180
+
+  const mapCenter: [number, number] = hasValidLocation
+    ? [lat, lon]
+    : DEFAULT_CENTER
+
+  const isError = msg?.startsWith('Submission Failed')
+
   return (
-    <div className="space-y-6">
-      <Card>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">⚠️</span>
-            <h2 className="font-bold text-lg text-white">Active Disaster Alerts</h2>
+    <div className="user-page">
+      {/* ── Active Alerts card ──────────────────────── */}
+      <Card className="user-card">
+        <div className="user-card-header">
+          <div className="user-card-header-left">
+            <span className="user-icon user-icon-warn">⚠️</span>
+            <h2 className="user-card-title">Active Disaster Alerts</h2>
           </div>
-          <span className="text-xs text-slate-400">Live External Feeds</span>
+          <span className="user-card-subtitle">Live External Feeds</span>
         </div>
-        <QueryState loading={alerts.isLoading} error={alerts.error} empty={alerts.data?.length === 0} retry={() => void alerts.refetch()} />
-        <ul className="space-y-3">
+
+        <QueryState
+          loading={alerts.isLoading}
+          error={alerts.error}
+          empty={alerts.data?.length === 0}
+          retry={() => void alerts.refetch()}
+        />
+
+        <ul className="user-alert-list">
           {alerts.data?.map((a) => (
-            <li key={a.id} className="rounded-xl border border-red-500/30 bg-red-950/20 p-4 transition-all hover:bg-red-950/30">
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-semibold text-red-200">{a.title}</span>
+            <li key={a.id} className="user-alert-item">
+              <div className="user-alert-header">
+                <span className="user-alert-title">{a.title}</span>
                 <Badge text={a.severity} />
               </div>
-              {a.description && <p className="text-xs text-slate-300 mt-1 mb-2">{a.description}</p>}
-              <div className="flex items-center justify-between text-[11px] text-slate-400">
+              {a.description && (
+                <p className="user-alert-desc">{a.description}</p>
+              )}
+              <div className="user-alert-meta">
                 <span>📍 Area: {a.area}</span>
-                <span>Valid until: {new Date(a.expiresAt).toLocaleString()}</span>
+                <span>
+                  Valid until:{' '}
+                  {new Date(a.expiresAt ?? a.expiryTime ?? '').toLocaleString()}
+                </span>
               </div>
-            </li>))}
+            </li>
+          ))}
         </ul>
       </Card>
 
-      <Card>
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-xl">📢</span>
-          <h2 className="font-bold text-lg text-white">Report an Emergency Incident</h2>
+      {/* ── Report Incident card ────────────────────── */}
+      <Card className="user-card">
+        <div className="user-card-header">
+          <div className="user-card-header-left">
+            <span className="user-icon">📢</span>
+            <h2 className="user-card-title">Report an Emergency Incident</h2>
+          </div>
         </div>
-        <p className="text-xs text-slate-400 mb-4">
-          Citizen emergency reports are forwarded directly to emergency operations for instant verification and responder squad dispatch.
+
+        <p className="user-card-subtitle" style={{ marginBottom: 18, display: 'block' }}>
+          Citizen emergency reports are forwarded directly to emergency
+          operations for instant verification and responder squad dispatch.
         </p>
 
-        <form className="grid gap-4 sm:grid-cols-2" onSubmit={handleSubmit(submit)}>
-          <div className="sm:col-span-2">
-            <label className="block text-xs font-medium text-slate-300 mb-1">Incident Headline / Title</label>
-            <input className="w-full rounded-lg border border-slate-700 bg-slate-800/80 p-2 text-sm text-white focus:border-red-500 focus:outline-none" {...register('title')} />
-            {errors.title && <p className="mt-1 text-xs text-red-400">{errors.title.message}</p>}
+        <form className="user-form-grid" onSubmit={handleSubmit(submit)}>
+          {/* Title */}
+          <div className="user-field user-field-full">
+            <label className="user-label">Incident Headline / Title</label>
+            <input
+              className="user-input"
+              {...register('title')}
+            />
+            {errors.title && (
+              <p className="user-error">{errors.title.message}</p>
+            )}
           </div>
 
-          <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Disaster Category</label>
-            <select className="w-full rounded-lg border border-slate-700 bg-slate-800/80 p-2 text-sm text-white focus:border-red-500 focus:outline-none" {...register('type')}>
-              {['FLOOD', 'EARTHQUAKE', 'CYCLONE', 'LANDSLIDE', 'WILDFIRE', 'GENERAL_EMERGENCY'].map((t) => (
-                <option key={t} value={t}>{t.replace('_', ' ')}</option>
+          {/* Disaster type */}
+          <div className="user-field">
+            <label className="user-label">Disaster Category</label>
+            <select className="user-select" {...register('type')}>
+              {[
+                'FLOOD',
+                'EARTHQUAKE',
+                'CYCLONE',
+                'LANDSLIDE',
+                'WILDFIRE',
+                'GENERAL_EMERGENCY',
+              ].map((t) => (
+                <option key={t} value={t}>
+                  {t.replace('_', ' ')}
+                </option>
               ))}
             </select>
           </div>
 
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <label className="text-xs font-medium text-slate-300">Location Presets</label>
-              <div className="flex gap-1 text-[10px]">
-                <button type="button" onClick={() => setLocationPreset(13.0827, 80.2707)} className="text-red-400 hover:underline cursor-pointer">Central</button> ·
-                <button type="button" onClick={() => setLocationPreset(12.9784, 80.2185)} className="text-red-400 hover:underline cursor-pointer">Velachery</button> ·
-                <button type="button" onClick={() => setLocationPreset(13.0500, 80.2824)} className="text-red-400 hover:underline cursor-pointer">Marina</button>
+          {/* Location preset + coords */}
+          <div className="user-field">
+            <div className="user-preset-header">
+              <label className="user-label" style={{ margin: 0 }}>
+                Location Presets
+              </label>
+              <div className="user-preset-group">
+                <button
+                  type="button"
+                  className="user-preset-btn"
+                  onClick={() => setLocationPreset(13.0827, 80.2707)}
+                >
+                  Central
+                </button>
+                ·
+                <button
+                  type="button"
+                  className="user-preset-btn"
+                  onClick={() => setLocationPreset(12.9784, 80.2185)}
+                >
+                  Velachery
+                </button>
+                ·
+                <button
+                  type="button"
+                  className="user-preset-btn"
+                  onClick={() => setLocationPreset(13.05, 80.2824)}
+                >
+                  Marina
+                </button>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <input type="number" step="any" placeholder="Latitude" className="w-full rounded-lg border border-slate-700 bg-slate-800/80 p-2 text-sm text-white focus:border-red-500 focus:outline-none" {...register('lat', { valueAsNumber: true })} />
-              <input type="number" step="any" placeholder="Longitude" className="w-full rounded-lg border border-slate-700 bg-slate-800/80 p-2 text-sm text-white focus:border-red-500 focus:outline-none" {...register('lon', { valueAsNumber: true })} />
+            <div className="user-coord-grid">
+              <input
+                type="number"
+                step="any"
+                placeholder="Latitude"
+                className="user-input"
+                {...register('lat', { valueAsNumber: true })}
+              />
+              <input
+                type="number"
+                step="any"
+                placeholder="Longitude"
+                className="user-input"
+                {...register('lon', { valueAsNumber: true })}
+              />
             </div>
           </div>
 
-          <div className="sm:col-span-2">
-            <label className="block text-xs font-medium text-slate-300 mb-1">Detailed Description & Stranded Persons</label>
-            <textarea rows={3} className="w-full rounded-lg border border-slate-700 bg-slate-800/80 p-2 text-sm text-white focus:border-red-500 focus:outline-none" {...register('description')} />
-            {errors.description && <p className="mt-1 text-xs text-red-400">{errors.description.message}</p>}
+          {/* Description */}
+          <div className="user-field user-field-full">
+            <label className="user-label">
+              Detailed Description & Stranded Persons
+            </label>
+            <textarea
+              rows={3}
+              className="user-textarea"
+              {...register('description')}
+            />
+            {errors.description && (
+              <p className="user-error">{errors.description.message}</p>
+            )}
           </div>
 
-          <div className="sm:col-span-2 flex items-center justify-between pt-2">
-            <Btn type="submit" disabled={m.isPending} className="bg-red-600 hover:bg-red-500 font-semibold px-6 py-2.5 shadow-lg shadow-red-950/50">
-              {m.isPending ? 'Submitting to Dispatch...' : '🚨 Submit Incident Report'}
+          {/* Map preview / picker */}
+          <div className="user-field user-field-full">
+            <label className="user-label">Incident Location on Map</label>
+            <div className="user-map-wrap">
+              <div className="user-map-hint">
+                Click the map to pin the incident location
+              </div>
+              <MapContainer
+                center={mapCenter}
+                zoom={12}
+                scrollWheelZoom={false}
+                className="user-map"
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                <MapClickHandler
+                  onPick={(newLat, newLon) => {
+                    setValue('lat', Number(newLat.toFixed(6)), {
+                      shouldValidate: true,
+                    })
+                    setValue('lon', Number(newLon.toFixed(6)), {
+                      shouldValidate: true,
+                    })
+                  }}
+                />
+                {hasValidLocation && <MapRecenter lat={lat} lon={lon} />}
+                {hasValidLocation && (
+                  <CircleMarker
+                    center={[lat, lon]}
+                    radius={11}
+                    pathOptions={{
+                      color: '#14b8a6',
+                      fillColor: '#14b8a6',
+                      fillOpacity: 0.65,
+                      weight: 2,
+                    }}
+                  />
+                )}
+              </MapContainer>
+            </div>
+          </div>
+
+          {/* Submit row */}
+          <div className="user-field-full user-form-footer">
+            <Btn
+              type="submit"
+              disabled={m.isPending}
+              className="user-submit"
+            >
+              {m.isPending
+                ? 'Submitting to Dispatch...'
+                : '🚨 Submit Incident Report'}
             </Btn>
           </div>
         </form>
 
         {msg && (
-          <div role="status" className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-950/20 p-3 text-xs text-emerald-300">
-            ✅ {msg}
+          <div
+            role="status"
+            className={isError ? 'user-error-banner' : 'user-success'}
+          >
+            {isError ? '⚠️' : '✅'} {msg}
           </div>
         )}
       </Card>

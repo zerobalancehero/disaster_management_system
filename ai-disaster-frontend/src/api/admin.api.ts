@@ -124,9 +124,12 @@ export const getAuditLogs = async (): Promise<AuditLog[]> => {
   const list = Array.isArray(r.data) ? r.data : (r.data?.content ?? [])
   return (list as RawAuditLog[]).map((l) => ({
     id: l.id,
+    timestamp: l.timestamp ?? l.at ?? new Date().toISOString(),
     at: l.timestamp ?? l.at ?? new Date().toISOString(),
+    actorName: l.actorName ?? l.actor ?? 'SYSTEM',
     actor: l.actorName ?? l.actor ?? 'SYSTEM',
     action: l.action,
+    details: l.details,
   }))
 }
 

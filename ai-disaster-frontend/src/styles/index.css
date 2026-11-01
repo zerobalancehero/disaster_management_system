@@ -1,0 +1,33 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+@import "./animations.css";
+
+:root {
+  --color-bg-base: #070B14;
+  --color-bg-secondary: #0D1422;
+  --color-bg-sidebar: #0A1020;
+  --color-surface-card: #111C2E;
+  --color-surface-elevated: #17243A;
+  --color-border-subtle: #25344A;
+  --color-accent-sky: #38BDF8;
+  --color-accent-indigo: #818CF8;
+  --color-accent-ai: #A78BFA;
+  --color-status-success: #22C55E;
+  --color-status-warning: #F59E0B;
+  --color-status-critical: #EF4444;
+}
+
+body {
+  background-color: #070B14;
+  color: #F8FAFC;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+/* Monospace fonts for numbers and telemetry */
+.font-mono-numbers {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-variant-numeric: tabular-nums;
+}

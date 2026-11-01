@@ -34,25 +34,29 @@ interface RawAssignment {
 
 function mapAssignment(raw: RawAssignment): AssignmentView {
   const inc = raw.incident
+  const incidentStatus = (inc?.verificationStatus ?? inc?.status ?? 'ASSIGNED') as import('../types').IncidentStatus
   return {
     id: raw.id,
     incidentId: raw.incidentId ?? inc?.id ?? '',
     teamId: raw.team?.id ?? raw.teamId ?? '',
     status: raw.status as AssignmentStatus,
+    assignmentStatus: raw.status as AssignmentStatus,
     updates: (raw.updates ?? []).map((u) => ({
       at: u.updateTime ?? u.at ?? new Date().toISOString(),
       note: u.notes ?? u.note ?? '',
     })),
-    incident: {
-      id: inc?.id ?? raw.incidentId ?? '',
-      title: inc?.title,
-      type: inc?.disasterType ?? inc?.type ?? 'OTHER',
-      description: inc?.description ?? '',
-      lat: inc?.latitude ?? inc?.lat ?? 0,
-      lon: inc?.longitude ?? inc?.lon ?? 0,
-      status: (inc?.verificationStatus ?? inc?.status ?? 'ASSIGNED') as AssignmentView['incident']['status'],
-      createdAt: inc?.reportedTime ?? inc?.createdAt ?? new Date().toISOString(),
-    },
+    incident: inc
+      ? {
+          id: inc.id ?? raw.incidentId ?? '',
+          title: inc.title,
+          type: inc.disasterType ?? inc.type ?? 'OTHER',
+          description: inc.description ?? '',
+          lat: inc.latitude ?? inc.lat ?? 0,
+          lon: inc.longitude ?? inc.lon ?? 0,
+          status: incidentStatus,
+          createdAt: inc.reportedTime ?? inc.createdAt ?? new Date().toISOString(),
+        }
+      : undefined,
   }
 }
 

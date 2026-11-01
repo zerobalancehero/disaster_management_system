@@ -35,4 +35,4 @@ export let db: Db = seed()
 export const resetMockState = () => { db = seed() }
 export const nextId = (p: string) => `${p}${++db.seq}`
 export const audit = (actor: string, action: string) =>
-  db.audit.unshift({ id: nextId('log'), at: now(), actor, action })
+  db.audit.unshift({ id: nextId('log'), at: now(), timestamp: now(), actor, actorName: actor, action })

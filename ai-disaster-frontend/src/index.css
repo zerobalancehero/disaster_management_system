@@ -1,2 +1,26 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
-body { @apply bg-slate-950 text-slate-100; }
+@theme {
+  --color-bg: #070B14; --color-bg2: #0D1422; --color-side: #0A1020;
+  --color-surface: #111C2E; --color-raised: #17243A; --color-edge: #25344A;
+  --color-accent: #38BDF8; --color-accent2: #818CF8; --color-ai: #A78BFA;
+  --color-ok: #22C55E; --color-warn: #F59E0B; --color-crit: #EF4444;
+  --color-ink: #F8FAFC; --color-mute: #94A3B8;
+  --font-sans: 'Manrope', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+html, body, #root { min-height: 100%; }
+body {
+  font-family: var(--font-sans); color: var(--color-ink); background-color: var(--color-bg);
+  background-image:
+    radial-gradient(900px 500px at 85% -10%, rgb(56 189 248 / .10), transparent 60%),
+    radial-gradient(700px 400px at -5% 110%, rgb(167 139 250 / .08), transparent 60%),
+    linear-gradient(rgb(37 52 74 / .18) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(37 52 74 / .18) 1px, transparent 1px);
+  background-size: auto, auto, 48px 48px, 48px 48px; background-attachment: fixed;
+}
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+@keyframes sos-ping { 0%{box-shadow:0 0 0 0 rgb(239 68 68 / .55)} 100%{box-shadow:0 0 0 16px rgb(239 68 68 / 0)} }
+.sos-pulse { animation: sos-ping 2.2s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation: none !important; transition: none !important; } }

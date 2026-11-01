@@ -7,15 +7,26 @@ import { useAuth } from '../features/auth/AuthContext'
 import { homePath } from '../lib/transitions'
 import { Btn } from '../components/ui'
 import type { ApiError } from '../types'
+import '../styles/Login.css'
 
-const schema = z.object({ username: z.string().min(1, 'Username is required'), password: z.string().min(1, 'Password is required') })
+const schema = z.object({
+  username: z.string().min(1, 'Username is required'),
+  password: z.string().min(1, 'Password is required'),
+})
+
 type Form = z.infer<typeof schema>
 
 export default function LoginPage() {
   const { user, login } = useAuth()
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
-  const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<Form>({
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    formState: { errors, isSubmitting },
+  } = useForm<Form>({
     resolver: zodResolver(schema),
     defaultValues: {
       username: 'admin@disaster.local',
@@ -42,82 +53,143 @@ export default function LoginPage() {
       navigate(homePath(loggedIn.role), { replace: true })
     } catch (e) {
       const err = e as ApiError
-      setError(err?.message || 'Authentication failed. Please verify credentials.')
+      setError(
+        err?.message || 'Authentication failed. Please verify credentials.'
+      )
     }
   }
 
   return (
-    <div className="mx-auto mt-16 max-w-md space-y-6 rounded-2xl border border-slate-800 bg-slate-900/90 p-8 shadow-2xl backdrop-blur-md">
-      <div className="text-center space-y-1">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20 mb-2">
-          🚨 Emergency Operations Platform
-        </div>
-        <h1 className="text-2xl font-bold tracking-tight text-white">Sign In</h1>
-        <p className="text-xs text-slate-400">Authenticate to access incident dispatch and reporting</p>
-      </div>
+    <div className="login-page">
 
-      <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Quick Test Credentials:</p>
-        <div className="grid grid-cols-3 gap-2">
-          <button
-            type="button"
-            onClick={() => fillCredentials('admin@disaster.local', 'Admin@123')}
-            className="flex flex-col items-center justify-center rounded-lg border border-slate-700 bg-slate-800/80 p-2 text-xs hover:border-red-500/50 hover:bg-slate-700/80 transition-all cursor-pointer"
-          >
-            <span className="font-semibold text-red-400">Admin</span>
-            <span className="text-[10px] text-slate-400">Full Dispatch</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => fillCredentials('responder@disaster.local', 'Responder@123')}
-            className="flex flex-col items-center justify-center rounded-lg border border-slate-700 bg-slate-800/80 p-2 text-xs hover:border-blue-500/50 hover:bg-slate-700/80 transition-all cursor-pointer"
-          >
-            <span className="font-semibold text-blue-400">Responder</span>
-            <span className="text-[10px] text-slate-400">Field Squad</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => fillCredentials('user@disaster.local', 'User@123')}
-            className="flex flex-col items-center justify-center rounded-lg border border-slate-700 bg-slate-800/80 p-2 text-xs hover:border-emerald-500/50 hover:bg-slate-700/80 transition-all cursor-pointer"
-          >
-            <span className="font-semibold text-emerald-400">Citizen</span>
-            <span className="text-[10px] text-slate-400">Report Alerts</span>
-          </button>
-        </div>
-      </div>
+      {/* Background video */}
+      <video className="login-bg-video" autoPlay muted loop playsInline>
+        <source src="/videos/login-bg.mp4" type="video/mp4" />
+        Your browser does not support video playback.
+      </video>
 
-      <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
-        <div>
-          <label className="block text-xs font-medium text-slate-300 mb-1">Email / Username</label>
-          <input
-            className="w-full rounded-lg border border-slate-700 bg-slate-800/70 p-2.5 text-sm text-white focus:border-red-500 focus:outline-none transition-colors"
-            placeholder="e.g. admin@disaster.local"
-            {...register('username')}
-          />
-          {errors.username && <p className="mt-1 text-xs text-red-400">{errors.username.message}</p>}
-        </div>
+      {/* Cinematic dark overlay */}
+      <div className="login-overlay-dark" />
 
-        <div>
-          <label className="block text-xs font-medium text-slate-300 mb-1">Password</label>
-          <input
-            type="password"
-            className="w-full rounded-lg border border-slate-700 bg-slate-800/70 p-2.5 text-sm text-white focus:border-red-500 focus:outline-none transition-colors"
-            placeholder="••••••••"
-            {...register('password')}
-          />
-          {errors.password && <p className="mt-1 text-xs text-red-400">{errors.password.message}</p>}
-        </div>
+      {/* Gradient overlay */}
+      <div className="login-overlay-gradient" />
 
-        {error && (
-          <div role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-400">
-            ⚠️ {error}
+      {/* Login container */}
+      <div className="login-container">
+
+        <div className="login-card">
+
+          {/* Header */}
+          <div className="login-header">
+
+            <div className="login-badge">
+              <span className="login-badge-dot" />
+              Emergency Operations Platform
+            </div>
+
+            <h1 className="login-title">Welcome Back</h1>
+
+            <p className="login-subtitle">
+              Sign in to access the Disaster Response Command Center
+            </p>
           </div>
-        )}
 
-        <Btn type="submit" disabled={isSubmitting} className="w-full py-2.5 font-semibold bg-red-600 hover:bg-red-500 transition-colors shadow-lg shadow-red-900/30">
-          {isSubmitting ? 'Authenticating...' : 'Sign in to Console'}
-        </Btn>
-      </form>
+          {/* Quick test credentials */}
+          <div className="login-quick">
+
+            <p className="login-quick-title">Quick Test Credentials</p>
+
+            <div className="login-quick-grid">
+
+              <button
+                type="button"
+                onClick={() =>
+                  fillCredentials('admin@disaster.local', 'Admin@123')
+                }
+                className="login-quick-btn is-admin"
+              >
+                <span className="login-quick-role">Admin</span>
+                <span className="login-quick-desc">Full Dispatch</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  fillCredentials('responder@disaster.local', 'Responder@123')
+                }
+                className="login-quick-btn is-responder"
+              >
+                <span className="login-quick-role">Responder</span>
+                <span className="login-quick-desc">Field Squad</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  fillCredentials('user@disaster.local', 'User@123')
+                }
+                className="login-quick-btn is-citizen"
+              >
+                <span className="login-quick-role">Citizen</span>
+                <span className="login-quick-desc">Report Alerts</span>
+              </button>
+
+            </div>
+          </div>
+
+          {/* Login form */}
+          <form className="login-form" onSubmit={handleSubmit(onSubmit)}>
+
+            <div className="login-field">
+              <label className="login-label">Email / Username</label>
+              <input
+                className="login-input"
+                placeholder="Enter your username"
+                autoComplete="username"
+                {...register('username')}
+              />
+              {errors.username && (
+                <p className="login-field-error">{errors.username.message}</p>
+              )}
+            </div>
+
+            <div className="login-field">
+              <label className="login-label">Password</label>
+              <input
+                type="password"
+                className="login-input"
+                placeholder="Enter your password"
+                autoComplete="current-password"
+                {...register('password')}
+              />
+              {errors.password && (
+                <p className="login-field-error">{errors.password.message}</p>
+              )}
+            </div>
+
+            {error && (
+              <div role="alert" className="login-alert">
+                ⚠️ {error}
+              </div>
+            )}
+
+            <Btn
+              type="submit"
+              disabled={isSubmitting}
+              className="login-submit"
+            >
+              {isSubmitting ? 'Authenticating...' : 'Sign in to Console →'}
+            </Btn>
+
+          </form>
+
+          {/* Footer */}
+          <div className="login-footer">
+            <p>Secure Disaster Management & Emergency Response System</p>
+          </div>
+
+        </div>
+      </div>
     </div>
   )
 }

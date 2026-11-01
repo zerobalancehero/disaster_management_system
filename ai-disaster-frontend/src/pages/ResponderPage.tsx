@@ -75,20 +75,20 @@ export default function ResponderPage() {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <span className="text-base font-bold text-white">
-                    {a.incident.title || `${a.incident.type} Mission`}
+                    {a.incident?.title || `${a.incident?.type ?? 'Emergency'} Mission`}
                   </span>
                   <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">
-                    {a.incident.type}
+                    {a.incident?.type ?? '—'}
                   </span>
                 </div>
-                <Badge text={a.status} />
+                <Badge text={a.status ?? a.assignmentStatus ?? 'UNKNOWN'} />
               </div>
 
-              <p className="text-xs text-slate-300 leading-relaxed">{a.incident.description}</p>
+              <p className="text-xs text-slate-300 leading-relaxed">{a.incident?.description}</p>
 
               <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-400 gap-2 border-t border-slate-800/80 pt-2">
-                <span>📍 Target Location: {a.incident.lat.toFixed(4)}, {a.incident.lon.toFixed(4)}</span>
-                <span>📅 Incident Logged: {new Date(a.incident.createdAt).toLocaleTimeString()}</span>
+                <span>📍 Target Location: {a.incident ? `${a.incident.lat.toFixed(4)}, ${a.incident.lon.toFixed(4)}` : '—'}</span>
+                <span>📅 Incident Logged: {a.incident?.createdAt ? new Date(a.incident.createdAt).toLocaleTimeString() : '—'}</span>
               </div>
 
               {a.updates && a.updates.length > 0 && (
@@ -97,7 +97,7 @@ export default function ResponderPage() {
                   {a.updates.map((u, idx) => (
                     <div key={idx} className="text-[11px] text-slate-300 flex justify-between">
                       <span>• {u.note}</span>
-                      <span className="text-slate-500 font-mono">{new Date(u.at).toLocaleTimeString()}</span>
+                      <span className="text-slate-500 font-mono">{u.at ? new Date(u.at).toLocaleTimeString() : ''}</span>
                     </div>
                   ))}
                 </div>
@@ -106,7 +106,7 @@ export default function ResponderPage() {
               <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
                 <span className="text-xs font-semibold text-slate-400">Advance Workflow:</span>
                 <div className="flex flex-wrap gap-2">
-                  {nextStatuses(a.status).map((s) => (
+                  {nextStatuses(a.status ?? a.assignmentStatus ?? 'APPROVED').map((s) => (
                     <Btn
                       key={s}
                       disabled={status.isPending}
@@ -116,7 +116,7 @@ export default function ResponderPage() {
                       → Mark as {s.replace('_', ' ')}
                     </Btn>
                   ))}
-                  {nextStatuses(a.status).length === 0 && (
+                  {nextStatuses(a.status ?? a.assignmentStatus ?? 'APPROVED').length === 0 && (
                     <span className="text-xs text-emerald-400 font-medium">✓ Mission Completed</span>
                   )}
                 </div>

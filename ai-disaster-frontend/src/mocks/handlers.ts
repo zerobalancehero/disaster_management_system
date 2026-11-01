@@ -39,12 +39,12 @@ export const handlers = [
   http.post(`${B}/auth/logout`, () => { db.session = null; return new HttpResponse(null, { status: 204 }) }),
 
   http.get(`${B}/alerts/active`, guard(ANY, () =>
-    HttpResponse.json(db.alerts.filter((a) => new Date(a.expiresAt) > new Date())))),
+    HttpResponse.json(db.alerts.filter((a) => new Date(a.expiresAt ?? a.expiryTime ?? '').getTime() > Date.now())))),
   http.post(`${B}/incidents/reports`, guard(['USER'], async (u, req) => {
     const b = (await req.json()) as IncidentReportRequest
     if (!b.description || b.description.length < 10) return err(400, 'Description too short')
     const inc = { ...b, id: nextId('i'), status: 'PENDING' as const, createdAt: new Date().toISOString() }
-    db.incidents.push(inc)
+    db.incidents.push(inc as unknown as typeof db.incidents[number])
     audit(u.name, `Submitted incident ${inc.id}`)
     return HttpResponse.json(inc, { status: 201 })
   })),
@@ -72,7 +72,7 @@ export const handlers = [
     if (i.status !== 'VERIFIED') return err(409, 'Only verified incidents can receive recommendations')
     db.recs = db.recs.filter((r) => r.incidentId !== i.id)
     const recs = db.teams.filter((t) => t.available).map((t) => ({
-      id: nextId('rec'), incidentId: i.id, teamId: t.id, teamName: t.name, skills: t.skills, available: t.available,
+      id: nextId('rec'), incidentId: i.id, teamId: t.id, teamName: t.name, skills: t.skills ?? [], available: t.available ?? false,
     }))
     db.recs.push(...recs); audit(u.name, `Requested recommendations for ${i.id}`)
     return HttpResponse.json(recs)
@@ -84,7 +84,11 @@ export const handlers = [
     if (!rec) return err(404, 'Recommendation not found')
     const inc = db.incidents.find((i) => i.id === rec.incidentId)
     if (!inc || inc.status !== 'VERIFIED') return err(409, 'Incident is not awaiting assignment')
-    const a = { id: nextId('as'), incidentId: inc.id, teamId: rec.teamId, status: 'APPROVED' as const, updates: [] }
+    const a = {
+      id: nextId('as'), incidentId: inc.id, teamId: rec.teamId,
+      teamName: rec.teamName, status: 'APPROVED' as const, assignmentStatus: 'APPROVED' as const,
+      assignmentTime: new Date().toISOString(), updates: [],
+    }
     db.assignments.push(a); inc.status = 'ASSIGNED'
     db.recs = db.recs.filter((r) => r.incidentId !== inc.id)
     audit(u.name, `Approved ${rec.teamName} for ${inc.id}`)
@@ -106,8 +110,9 @@ export const handlers = [
     const a = db.assignments.find((x) => x.id === p.id)
     if (!a) return err(404, 'Assignment not found')
     if (a.teamId !== u.teamId) return err(403, 'Assignment belongs to another team')
-    if (!canTransition(a.status, status)) return err(409, `Invalid transition ${a.status} -> ${status}`)
-    a.status = status
+    const currentStatus = (a.status ?? a.assignmentStatus) as AssignmentStatus
+    if (!canTransition(currentStatus, status)) return err(409, `Invalid transition ${currentStatus} -> ${status}`)
+    a.status = status; a.assignmentStatus = status
     const inc = db.incidents.find((i) => i.id === a.incidentId)
     if (inc && status === 'RESOLVED') inc.status = 'RESOLVED'
     audit(u.name, `Assignment ${a.id} -> ${status}`)

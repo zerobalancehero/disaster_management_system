@@ -2,6 +2,7 @@ import type { AssignmentStatus, Role } from '../types'
 
 const NEXT: Record<AssignmentStatus, AssignmentStatus[]> = {
   APPROVED: ['EN_ROUTE'],
+  ACCEPTED: ['EN_ROUTE'],
   EN_ROUTE: ['ON_SCENE'],
   ON_SCENE: ['RESOLVED'],
   RESOLVED: [],

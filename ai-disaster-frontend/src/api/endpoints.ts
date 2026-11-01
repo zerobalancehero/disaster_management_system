@@ -1,0 +1,81 @@
+import { api } from './client'
+export type Json = Record<string, unknown>
+export type Loc = { latitude: number; longitude: number }
+export type DisasterType = 'FLOOD' | 'EARTHQUAKE' | 'CYCLONE' | 'LANDSLIDE' | 'WILDFIRE' | 'GENERAL_EMERGENCY'
+export type Horizon = 'NEXT_6H' | 'NEXT_24H' | 'NEXT_48H'
+export type AssignmentStatus = 'APPROVED' | 'EN_ROUTE' | 'ON_SCENE' | 'RESOLVED'
+
+const one = <T = Json>(p: Promise<{ data: T }>) => p.then((r) => r.data)
+const many = <T = Json>(p: Promise<{ data: unknown }>) =>
+  p.then((r) => (Array.isArray(r.data) ? r.data : ((r.data as { content?: unknown[] })?.content ?? [])) as T[])
+const q = (params?: Json) => ({ params })
+
+// UNRESOLVED DTO = body typed as Json; confirm against the Spring records before relying on field names.
+export const authApi = {
+  login: (b: { email: string; password: string }) => one(api.post('/auth/login', b)),
+  logout: () => api.post('/auth/logout'),
+  me: () => one(api.get('/users/me')),
+}
+export const weatherApi = {
+  current: (lat: number, lon: number) => one(api.get('/weather/current', q({ lat, lon }))),
+  forecast: (lat: number, lon: number) => one(api.get('/weather/forecast', q({ lat, lon }))),
+}
+export const alertsApi = {
+  active: () => many(api.get('/alerts/active')),
+  history: () => many(api.get('/alerts/history')),
+  byId: (id: string) => one(api.get(`/alerts/${id}`)),
+  safety: (params?: Json) => many(api.get('/alerts/safety-instructions', q(params))),
+  safetyFor: (id: string) => many(api.get(`/alerts/${id}/safety-instructions`)),
+}
+export const incidentsApi = {
+  report: (b: { title: string; disasterType: DisasterType; description: string; location: Loc }) =>
+    one(api.post('/incidents/reports', b)),
+  mine: () => many(api.get('/incidents/my-reports')),
+  mineById: (id: string) => one(api.get(`/incidents/my-reports/${id}`)),
+}
+export const risksApi = {
+  regions: (params?: Json) => many(api.get('/risks/regions', q(params))),
+  region: (id: string) => one(api.get(`/risks/regions/${id}`)),
+  history: (params?: Json) => many(api.get('/risks/history', q(params))),
+  calculate: (b?: Json) => one(api.post('/risks/calculate', b ?? {})), // UNRESOLVED: request body
+}
+export const responderApi = {
+  assignments: () => many(api.get('/responder/my-assignments')),
+  assignment: (id: string) => one(api.get(`/responder/my-assignments/${id}`)),
+  // Contract per spec: { status, message, location } — NOT newStatus/notes.
+  setStatus: (id: string, b: { status: AssignmentStatus; message: string; location: Loc | null }) =>
+    one(api.patch(`/responder/my-assignments/${id}/status`, b)),
+  addUpdate: (id: string, b: { message: string; latitude?: number; longitude?: number }) =>
+    one(api.post(`/responder/my-assignments/${id}/updates`, b)), // UNRESOLVED: location shape
+  setTeamStatus: (availabilityStatus: 'AVAILABLE' | 'OFF_DUTY') =>
+    one(api.patch('/responder/team/status', { availabilityStatus })),
+  notifications: () => many(api.get('/responder/notifications')),
+  markRead: (id: string) => one(api.patch(`/responder/notifications/${id}/read`)),
+}
+export const adminApi = {
+  dashboard: () => one(api.get('/admin/dashboard')),
+  incidents: (params?: Json) => many(api.get('/admin/incidents', q(params))),
+  pending: () => many(api.get('/admin/incidents/pending')),
+  incident: (id: string) => one(api.get(`/admin/incidents/${id}`)),
+  verify: (id: string) => one(api.patch(`/admin/incidents/${id}/verify`)),
+  reject: (id: string, rejectionReason: string) => one(api.patch(`/admin/incidents/${id}/reject`, { rejectionReason })),
+  recommend: (id: string) => many(api.post(`/admin/incidents/${id}/recommendations`)),
+  recommendations: (id: string) => many(api.get(`/admin/incidents/${id}/recommendations`)),
+  approve: (recId: string) => one(api.post(`/admin/assignments/${recId}/approve`)),
+  declineRec: (recId: string, rejectionReason: string) => one(api.post(`/admin/assignments/${recId}/reject`, { rejectionReason })),
+  reassign: (id: string, b: Json) => one(api.post(`/admin/incidents/${id}/reassign`, b)), // UNRESOLVED: body
+  teams: () => many(api.get('/admin/teams')),
+  createTeam: (b: Json) => one(api.post('/admin/teams', b)),
+  updateTeam: (id: string, b: Json) => one(api.patch(`/admin/teams/${id}`, b)),
+  setMembers: (id: string, b: Json) => one(api.put(`/admin/teams/${id}/members`, b)),
+  users: () => many(api.get('/admin/users')),
+  updateUser: (id: string, b: Json) => one(api.patch(`/admin/users/${id}`, b)),
+  setRole: (id: string, b: Json) => one(api.patch(`/admin/users/${id}/role`, b)),
+  riskRegions: () => many(api.get('/admin/risks/regions')),
+  modelInfo: () => one(api.get('/admin/risks/model-info')),
+  createSafety: (b: Json) => one(api.post('/admin/safety-instructions', b)),
+  updateSafety: (id: string, b: Json) => one(api.patch(`/admin/safety-instructions/${id}`, b)),
+  performance: () => one(api.get('/admin/reports/response-performance')),
+  auditLogs: (params?: Json) => many(api.get('/admin/audit-logs', q(params))),
+  dataSources: () => one(api.get('/admin/data-sources/status')),
+}

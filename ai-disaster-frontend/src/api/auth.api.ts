@@ -1,38 +1,6 @@
-import { z } from 'zod'
 import { api } from './client'
-import type { ApiError, User } from '../types'
+import type { LoginRequest, LoginResponse, User } from '../types'
 
-const userSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  role: z.enum(['USER', 'RESPONDER', 'ADMIN']),
-  email: z.string().optional(),
-  phone: z.string().optional(),
-  teamId: z.string().optional(),
-})
-
-function normalizeUserPayload(raw: unknown): User {
-  if (!raw || typeof raw !== 'object') {
-    throw { status: 502, message: 'Invalid user payload received' } as ApiError
-  }
-  const obj = raw as Record<string, unknown>
-  const candidate = {
-    id: String(obj.id ?? ''),
-    name: String(obj.name ?? obj.fullName ?? obj.username ?? 'User'),
-    role: String(obj.role ?? 'USER').toUpperCase() as User['role'],
-    email: obj.email ? String(obj.email) : undefined,
-    phone: obj.phone ? String(obj.phone) : undefined,
-    teamId: obj.teamId ? String(obj.teamId) : undefined,
-  }
-
-  const r = userSchema.safeParse(candidate)
-  if (!r.success) {
-    throw { status: 502, message: 'Failed to parse user role or profile' } as ApiError
-  }
-  return r.data
-}
-
-// Convert shorthand username to mock/seed email if needed
 function resolveEmail(identifier: string): string {
   const trimmed = identifier.trim()
   if (trimmed.includes('@')) return trimmed
@@ -52,55 +20,47 @@ export const getStoredUser = (): User | null => {
   }
 }
 
-export const login = async (b: { username: string; password: string }): Promise<User> => {
-  const email = resolveEmail(b.username)
-  const payload = {
+export const login = async (creds: { username?: string; email?: string; password: string }): Promise<User> => {
+  const email = creds.email ? creds.email : resolveEmail(creds.username ?? '')
+  const payload: LoginRequest = {
     email,
-    password: b.password,
+    password: creds.password,
   }
 
-  const response = await api.post('/auth/login', payload)
+  const response = await api.post<LoginResponse>('/auth/login', payload)
   const data = response.data
 
-  // Spring Boot backend returns: { token: "...", tokenType: "Bearer", user: { ... } }
-  if (data && typeof data === 'object' && 'token' in data) {
-    const token = String((data as { token: string }).token)
-    localStorage.setItem('disaster_token', token)
-    const rawUser = (data as { user?: unknown }).user ?? data
-    const user = normalizeUserPayload(rawUser)
+  if (data && 'token' in data && data.token) {
+    localStorage.setItem('disaster_token', data.token)
+    const user = data.user
     localStorage.setItem('disaster_user', JSON.stringify(user))
     return user
   }
 
-  // Fallback for mock service worker returning direct user
-  const user = normalizeUserPayload(data)
-  localStorage.setItem('disaster_user', JSON.stringify(user))
-  return user
+  // Fallback for direct user mock
+  const directUser = (data as unknown as { user?: User }).user ?? (data as unknown as User)
+  localStorage.setItem('disaster_user', JSON.stringify(directUser))
+  return directUser
+}
+
+export const logout = async (): Promise<void> => {
+  try {
+    await api.post('/auth/logout')
+  } catch {
+    // Statelessly ignore network errors on logout
+  } finally {
+    localStorage.removeItem('disaster_token')
+    localStorage.removeItem('disaster_user')
+  }
 }
 
 export const getMe = async (): Promise<User | null> => {
   const token = localStorage.getItem('disaster_token')
   if (!token && !import.meta.env.VITE_USE_MOCKS) {
-    localStorage.removeItem('disaster_user')
     return null
   }
-  try {
-    const r = await api.get('/users/me')
-    const user = normalizeUserPayload(r.data)
-    localStorage.setItem('disaster_user', JSON.stringify(user))
-    return user
-  } catch (err) {
-    const error = err as ApiError
-    if (error.status === 401) {
-      localStorage.removeItem('disaster_token')
-      localStorage.removeItem('disaster_user')
-      return null
-    }
-    throw error
-  }
+  const response = await api.get<User>('/users/me')
+  const user = response.data
+  localStorage.setItem('disaster_user', JSON.stringify(user))
+  return user
 }
-
-export const logout = async (): Promise<void> => {
-  localStorage.removeItem('disaster_token')
-  localStorage.removeItem('disaster_user')
-}
