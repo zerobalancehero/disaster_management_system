@@ -20,6 +20,10 @@ export interface DisasterAlertResponse {
   impactedAreaName?: string
   /** Flat area name used by UI */
   area?: string
+  /** Centroid latitude derived from affectedArea geometry (backend-provided) */
+  latitude?: number
+  /** Centroid longitude derived from affectedArea geometry (backend-provided) */
+  longitude?: number
 }
 
 export interface SafetyInstructionResponse {

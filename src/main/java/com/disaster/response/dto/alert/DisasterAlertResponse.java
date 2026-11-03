@@ -4,6 +4,7 @@ import com.disaster.response.domain.entity.DisasterAlert;
 import com.disaster.response.domain.enums.AlertSeverity;
 import com.disaster.response.domain.enums.AlertStatus;
 import com.disaster.response.domain.enums.DisasterType;
+import org.locationtech.jts.geom.Point;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -19,11 +20,21 @@ public record DisasterAlertResponse(
     Instant issueTime,
     Instant expiryTime,
     AlertStatus status,
-    String affectedAreaWkt
+    String affectedAreaWkt,
+    Double latitude,
+    Double longitude
 ) {
     public static DisasterAlertResponse from(DisasterAlert alert) {
         if (alert == null) {
             return null;
+        }
+        Double lat = null;
+        Double lon = null;
+        if (alert.getAffectedArea() != null) {
+            // JTS centroid: getX() = longitude, getY() = latitude (SRID 4326)
+            Point centroid = alert.getAffectedArea().getCentroid();
+            lat = centroid.getY();
+            lon = centroid.getX();
         }
         return new DisasterAlertResponse(
             alert.getId(),
@@ -36,7 +47,9 @@ public record DisasterAlertResponse(
             alert.getIssueTime(),
             alert.getExpiryTime(),
             alert.getStatus(),
-            alert.getAffectedArea() != null ? alert.getAffectedArea().toText() : null
+            alert.getAffectedArea() != null ? alert.getAffectedArea().toText() : null,
+            lat,
+            lon
         );
     }
 }
