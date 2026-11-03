@@ -5,7 +5,7 @@ export type DisasterType = 'FLOOD' | 'EARTHQUAKE' | 'CYCLONE' | 'LANDSLIDE' | 'W
 export type Horizon = 'NEXT_6H' | 'NEXT_24H' | 'NEXT_48H'
 export type AssignmentStatus = 'APPROVED' | 'EN_ROUTE' | 'ON_SCENE' | 'RESOLVED'
 
-const one = <T = Json>(p: Promise<{ data: T }>) => p.then((r) => r.data)
+const one = <T = Json>(p: Promise<{ data: T }>) => p.then((r) => r.data as T)
 const many = <T = Json>(p: Promise<{ data: unknown }>) =>
   p.then((r) => (Array.isArray(r.data) ? r.data : ((r.data as { content?: unknown[] })?.content ?? [])) as T[])
 const q = (params?: Json) => ({ params })
@@ -53,29 +53,29 @@ export const responderApi = {
   markRead: (id: string) => one(api.patch(`/responder/notifications/${id}/read`)),
 }
 export const adminApi = {
-  dashboard: () => one(api.get('/admin/dashboard')),
-  incidents: (params?: Json) => many(api.get('/admin/incidents', q(params))),
-  pending: () => many(api.get('/admin/incidents/pending')),
-  incident: (id: string) => one(api.get(`/admin/incidents/${id}`)),
-  verify: (id: string) => one(api.patch(`/admin/incidents/${id}/verify`)),
-  reject: (id: string, rejectionReason: string) => one(api.patch(`/admin/incidents/${id}/reject`, { rejectionReason })),
-  recommend: (id: string) => many(api.post(`/admin/incidents/${id}/recommendations`)),
-  recommendations: (id: string) => many(api.get(`/admin/incidents/${id}/recommendations`)),
-  approve: (recId: string) => one(api.post(`/admin/assignments/${recId}/approve`)),
-  declineRec: (recId: string, rejectionReason: string) => one(api.post(`/admin/assignments/${recId}/reject`, { rejectionReason })),
-  reassign: (id: string, b: Json) => one(api.post(`/admin/incidents/${id}/reassign`, b)), // UNRESOLVED: body
-  teams: () => many(api.get('/admin/teams')),
-  createTeam: (b: Json) => one(api.post('/admin/teams', b)),
-  updateTeam: (id: string, b: Json) => one(api.patch(`/admin/teams/${id}`, b)),
-  setMembers: (id: string, b: Json) => one(api.put(`/admin/teams/${id}/members`, b)),
-  users: () => many(api.get('/admin/users')),
-  updateUser: (id: string, b: Json) => one(api.patch(`/admin/users/${id}`, b)),
-  setRole: (id: string, b: Json) => one(api.patch(`/admin/users/${id}/role`, b)),
-  riskRegions: () => many(api.get('/admin/risks/regions')),
-  modelInfo: () => one(api.get('/admin/risks/model-info')),
-  createSafety: (b: Json) => one(api.post('/admin/safety-instructions', b)),
-  updateSafety: (id: string, b: Json) => one(api.patch(`/admin/safety-instructions/${id}`, b)),
-  performance: () => one(api.get('/admin/reports/response-performance')),
-  auditLogs: (params?: Json) => many(api.get('/admin/audit-logs', q(params))),
-  dataSources: () => one(api.get('/admin/data-sources/status')),
+  dashboard: () => one<Json>(api.get('/admin/dashboard')),
+  incidents: (params?: Json) => many<Json>(api.get('/admin/incidents', q(params))),
+  pending: () => many<Json>(api.get('/admin/incidents/pending')),
+  incident: (id: string) => one<Json>(api.get(`/admin/incidents/${id}`)),
+  verify: (id: string) => one<Json>(api.patch(`/admin/incidents/${id}/verify`)),
+  reject: (id: string, rejectionReason: string) => one<Json>(api.patch(`/admin/incidents/${id}/reject`, { rejectionReason })),
+  recommend: (id: string) => many<Json>(api.post(`/admin/incidents/${id}/recommendations`)),
+  recommendations: (id: string) => many<Json>(api.get(`/admin/incidents/${id}/recommendations`)),
+  approve: (recId: string) => one<Json>(api.post(`/admin/assignments/${recId}/approve`)),
+  declineRec: (recId: string, rejectionReason: string) => one<Json>(api.post(`/admin/assignments/${recId}/reject`, { rejectionReason })),
+  reassign: (id: string, b: Json) => one<Json>(api.post(`/admin/incidents/${id}/reassign`, b)), // UNRESOLVED: body
+  teams: () => many<Json>(api.get('/admin/teams')),
+  createTeam: (b: Json) => one<Json>(api.post('/admin/teams', b)),
+  updateTeam: (id: string, b: Json) => one<Json>(api.patch(`/admin/teams/${id}`, b)),
+  setMembers: (id: string, b: Json) => one<Json>(api.put(`/admin/teams/${id}/members`, b)),
+  users: () => many<Json>(api.get('/admin/users')),
+  updateUser: (id: string, b: Json) => one<Json>(api.patch(`/admin/users/${id}`, b)),
+  setRole: (id: string, b: Json) => one<Json>(api.patch(`/admin/users/${id}/role`, b)),
+  riskRegions: () => many<Json>(api.get('/admin/risks/regions')),
+  modelInfo: () => one<Json>(api.get('/admin/risks/model-info')),
+  createSafety: (b: Json) => one<Json>(api.post('/admin/safety-instructions', b)),
+  updateSafety: (id: string, b: Json) => one<Json>(api.patch(`/admin/safety-instructions/${id}`, b)),
+  performance: () => one<Json>(api.get('/admin/reports/response-performance')),
+  auditLogs: (params?: Json) => many<Json>(api.get('/admin/audit-logs', q(params))),
+  dataSources: () => one<Json>(api.get('/admin/data-sources/status')),
 }
