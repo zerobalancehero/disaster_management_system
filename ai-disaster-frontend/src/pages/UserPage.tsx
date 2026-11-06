@@ -442,6 +442,8 @@ export default function UserPage() {
 
             const timeStr = r.reportedTime || r.createdAt
             const timeLabel = timeStr ? new Date(timeStr).toLocaleString() : 'Recently'
+            const rLat = r.lat ?? r.location?.latitude
+            const rLon = r.lon ?? r.location?.longitude
 
             return (
               <div key={r.id} className="p-4 rounded-lg bg-surface/70 border border-edge space-y-2">
@@ -462,7 +464,7 @@ export default function UserPage() {
                   </p>
                 )}
                 <div className="flex items-center justify-between text-xs text-slate-400 pt-1 border-t border-edge/50">
-                  <span>📍 Coordinates: {r.lat != null ? r.lat.toFixed(4) : '—'}, {r.lon != null ? r.lon.toFixed(4) : '—'}</span>
+                  <span>📍 Coordinates: {rLat != null ? rLat.toFixed(4) : '—'}, {rLon != null ? rLon.toFixed(4) : '—'}</span>
                   <span>Reported {timeLabel}</span>
                 </div>
               </div>

@@ -6,6 +6,7 @@ import com.disaster.response.domain.enums.IncidentSeverity;
 import com.disaster.response.domain.enums.VerificationStatus;
 import com.disaster.response.dto.common.GeoPointDto;
 import com.disaster.response.gis.GisUtil;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -28,6 +29,26 @@ public record IncidentResponse(
     Instant createdAt,
     Instant updatedAt
 ) {
+    @JsonProperty("lat")
+    public Double lat() {
+        return location != null ? location.latitude() : null;
+    }
+
+    @JsonProperty("lon")
+    public Double lon() {
+        return location != null ? location.longitude() : null;
+    }
+
+    @JsonProperty("latitude")
+    public Double latitude() {
+        return location != null ? location.latitude() : null;
+    }
+
+    @JsonProperty("longitude")
+    public Double longitude() {
+        return location != null ? location.longitude() : null;
+    }
+
     public static IncidentResponse from(Incident incident) {
         if (incident == null) {
             return null;

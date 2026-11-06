@@ -188,9 +188,18 @@ function IncidentsMap({
 
   const plottableIncidents = useMemo(
     () =>
-      incidents.filter(
-        (i) => Number.isFinite(i.lat) && Number.isFinite(i.lon)
-      ),
+      incidents
+        .map((i) => {
+          const lat = i.lat || i.location?.latitude || 0
+          const lon = i.lon || i.location?.longitude || 0
+          return { ...i, lat, lon }
+        })
+        .filter(
+          (i) =>
+            Number.isFinite(i.lat) &&
+            Number.isFinite(i.lon) &&
+            (Math.abs(i.lat) > 0.0001 || Math.abs(i.lon) > 0.0001)
+        ),
     [incidents]
   )
 

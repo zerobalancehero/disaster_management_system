@@ -24,6 +24,9 @@ function IncidentRow({ i }: { i: Incident }) {
   const [err, setErr] = useState<string | null>(null)
   const [isRejectOpen, setIsRejectOpen] = useState(false)
 
+  const lat = i.lat || i.location?.latitude || 0
+  const lon = i.lon || i.location?.longitude || 0
+
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: ['admin-incidents'] })
     void qc.invalidateQueries({ queryKey: ['audit'] })
@@ -71,12 +74,12 @@ function IncidentRow({ i }: { i: Incident }) {
 
       <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-400 gap-2 border-t border-slate-800/80 pt-2.5">
         <a
-          href={`https://www.google.com/maps/dir/?api=1&destination=${i.lat},${i.lon}`}
+          href={`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`}
           target="_blank"
           rel="noreferrer"
           className="flex items-center gap-1 text-sky-400 hover:text-sky-300 underline"
         >
-          <MapPin size={12} /> {i.lat.toFixed(4)}, {i.lon.toFixed(4)}
+          <MapPin size={12} /> {lat.toFixed(4)}, {lon.toFixed(4)}
         </a>
         <span className="flex items-center gap-1">
           <Clock size={12} /> {new Date(i.createdAt ?? '').toLocaleString()}

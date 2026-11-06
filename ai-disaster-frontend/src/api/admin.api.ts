@@ -11,26 +11,55 @@ interface RawIncident {
   latitude?: number
   lon?: number
   longitude?: number
+  location?: {
+    latitude?: number
+    longitude?: number
+    lat?: number
+    lon?: number
+  }
+  severity?: string
   status?: string
   verificationStatus?: string
   createdAt?: string
   reportedTime?: string
   rejectionReason?: string
   reporter?: { name?: string }
+  reporterName?: string
 }
 
 function mapIncident(raw: RawIncident): Incident {
+  const lat =
+    raw.location?.latitude ??
+    raw.location?.lat ??
+    raw.latitude ??
+    raw.lat ??
+    0
+  const lon =
+    raw.location?.longitude ??
+    raw.location?.lon ??
+    raw.longitude ??
+    raw.lon ??
+    0
+
   return {
     id: raw.id,
     title: raw.title,
     description: raw.description,
     type: raw.disasterType ?? raw.type ?? 'OTHER',
-    lat: raw.latitude ?? raw.lat ?? 0,
-    lon: raw.longitude ?? raw.lon ?? 0,
+    disasterType: (raw.disasterType ?? raw.type) as Incident['disasterType'],
+    severity: raw.severity as Incident['severity'],
+    lat,
+    lon,
+    location: {
+      latitude: lat,
+      longitude: lon,
+    },
     status: (raw.verificationStatus ?? raw.status ?? 'PENDING') as Incident['status'],
+    verificationStatus: (raw.verificationStatus ?? raw.status ?? 'PENDING') as Incident['status'],
     createdAt: raw.reportedTime ?? raw.createdAt ?? new Date().toISOString(),
+    reportedTime: raw.reportedTime ?? raw.createdAt,
     rejectionReason: raw.rejectionReason,
-    reporterName: raw.reporter?.name,
+    reporterName: raw.reporterName ?? raw.reporter?.name,
   }
 }
 

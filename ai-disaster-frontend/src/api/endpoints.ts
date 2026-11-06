@@ -28,10 +28,36 @@ export const alertsApi = {
   safetyFor: (id: string) => many(api.get(`/alerts/${id}/safety-instructions`)),
 }
 export const incidentsApi = {
-  report: (b: { title: string; disasterType: DisasterType; description: string; location: Loc }) =>
+  report: (b: { title: string; disasterType: DisasterType; description: string; location: Loc; severity?: string }) =>
     one(api.post('/incidents/reports', b)),
-  mine: () => many(api.get('/incidents/my-reports')),
-  mineById: (id: string) => one(api.get(`/incidents/my-reports/${id}`)),
+  mine: () =>
+    many(api.get('/incidents/my-reports')).then((list) =>
+      list.map((r: any) => {
+        const lat = r.location?.latitude ?? r.location?.lat ?? r.latitude ?? r.lat ?? 0
+        const lon = r.location?.longitude ?? r.location?.lon ?? r.longitude ?? r.lon ?? 0
+        return {
+          ...r,
+          lat,
+          lon,
+          location: r.location ?? { latitude: lat, longitude: lon },
+          type: r.disasterType ?? r.type ?? 'OTHER',
+          status: r.verificationStatus ?? r.status ?? 'PENDING',
+        }
+      })
+    ),
+  mineById: (id: string) =>
+    one(api.get(`/incidents/my-reports/${id}`)).then((r: any) => {
+      const lat = r.location?.latitude ?? r.location?.lat ?? r.latitude ?? r.lat ?? 0
+      const lon = r.location?.longitude ?? r.location?.lon ?? r.longitude ?? r.lon ?? 0
+      return {
+        ...r,
+        lat,
+        lon,
+        location: r.location ?? { latitude: lat, longitude: lon },
+        type: r.disasterType ?? r.type ?? 'OTHER',
+        status: r.verificationStatus ?? r.status ?? 'PENDING',
+      }
+    }),
 }
 export const risksApi = {
   regions: (params?: Json) => many(api.get('/risks/regions', q(params))),

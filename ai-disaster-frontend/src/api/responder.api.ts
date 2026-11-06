@@ -28,6 +28,7 @@ interface RawAssignment {
     latitude?: number
     lon?: number
     longitude?: number
+    location?: { latitude?: number; longitude?: number; lat?: number; lon?: number }
     status?: string
     verificationStatus?: string
     createdAt?: string
@@ -39,8 +40,8 @@ function mapAssignment(raw: RawAssignment): AssignmentView {
   const inc = raw.incident
   const incidentStatus = (inc?.verificationStatus ?? inc?.status ?? 'ASSIGNED') as import('../types').IncidentStatus
   const status = (raw.assignmentStatus ?? raw.status ?? 'APPROVED') as AssignmentStatus
-  const lat = raw.incidentLocation?.latitude ?? inc?.latitude ?? inc?.lat ?? 0
-  const lon = raw.incidentLocation?.longitude ?? inc?.longitude ?? inc?.lon ?? 0
+  const lat = raw.incidentLocation?.latitude ?? inc?.location?.latitude ?? inc?.location?.lat ?? inc?.latitude ?? inc?.lat ?? 0
+  const lon = raw.incidentLocation?.longitude ?? inc?.location?.longitude ?? inc?.location?.lon ?? inc?.longitude ?? inc?.lon ?? 0
   const title = raw.incidentTitle ?? inc?.title
   const desc = inc?.description ?? ''
   const type = inc?.disasterType ?? inc?.type ?? 'OTHER'
