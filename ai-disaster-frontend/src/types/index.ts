@@ -11,7 +11,7 @@ export * from './admin.types'
 export type Role = import('./auth.types').UserRole
 export type Alert = import('./alert.types').DisasterAlertResponse
 export type Assignment = import('./responder.types').AssignmentResponse
-export type AssignmentView = import('./responder.types').AssignmentResponse
+export type AssignmentView = import('./responder.types').AssignmentView
 export type AuditLog = import('./admin.types').AuditLogResponse
 export type Recommendation = import('./admin.types').RecommendationResponse
 export type Team = import('./admin.types').TeamResponse

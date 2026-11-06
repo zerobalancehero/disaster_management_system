@@ -11,6 +11,7 @@ import '../../styles/ResponderAssignments.css'
 
 const DEFAULT_MSG: Record<AssignmentStatus, string> = {
   APPROVED: 'Assignment approved',
+  ACCEPTED: 'Assignment accepted by response team',
   EN_ROUTE: 'Response team is moving to the incident location',
   ON_SCENE: 'Response team has arrived on scene',
   RESOLVED: 'Incident resolved by response team',
@@ -18,6 +19,7 @@ const DEFAULT_MSG: Record<AssignmentStatus, string> = {
 
 const STATUS_COLOR: Record<AssignmentStatus, string> = {
   APPROVED: '#22d3ee',
+  ACCEPTED: '#818cf8',
   EN_ROUTE: '#60a5fa',
   ON_SCENE: '#fbbf24',
   RESOLVED: '#34d399',

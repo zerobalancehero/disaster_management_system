@@ -3,7 +3,7 @@ export type Json = Record<string, unknown>
 export type Loc = { latitude: number; longitude: number }
 export type DisasterType = 'FLOOD' | 'EARTHQUAKE' | 'CYCLONE' | 'LANDSLIDE' | 'WILDFIRE' | 'GENERAL_EMERGENCY'
 export type Horizon = 'NEXT_6H' | 'NEXT_24H' | 'NEXT_48H'
-export type AssignmentStatus = 'APPROVED' | 'EN_ROUTE' | 'ON_SCENE' | 'RESOLVED'
+export type AssignmentStatus = 'APPROVED' | 'ACCEPTED' | 'EN_ROUTE' | 'ON_SCENE' | 'RESOLVED'
 
 const one = <T = Json>(p: Promise<{ data: T }>) => p.then((r) => r.data as T)
 const many = <T = Json>(p: Promise<{ data: unknown }>) =>

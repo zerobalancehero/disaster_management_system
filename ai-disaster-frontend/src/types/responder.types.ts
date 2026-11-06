@@ -40,6 +40,12 @@ export interface AssignmentResponse {
   incident?: Incident
 }
 
+export interface AssignmentView extends AssignmentResponse {
+  status: AssignmentStatus
+  assignmentStatus: AssignmentStatus
+  incident: Incident
+}
+
 export interface UpdateAssignmentStatusRequest {
   status: AssignmentStatus
   message?: string

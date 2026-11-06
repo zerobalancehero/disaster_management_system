@@ -1,5 +1,5 @@
 /* ============================================================
-   AdminDashboard.css — Disaster Ops Admin Command Center
+   AdminDashboard.css â€” Disaster Ops Admin Command Center
    Matches UserOverview & Dark Military Glass Design System
    ============================================================ */
 
@@ -389,7 +389,7 @@
 }
 
 /* ============================================================
-   Live Incident Map — mirrors UserOverview map design
+   Live Incident Map â€” mirrors UserOverview map design
    ============================================================ */
 
 .ad-map-hero {
@@ -468,7 +468,7 @@
   color: #ffffff !important;
 }
 
-/* Badge pill — top-left */
+/* Badge pill â€” top-left */
 .ad-map-badge {
   position: absolute;
   top: 14px;
@@ -515,7 +515,7 @@
   border-radius: 999px;
 }
 
-/* Legend — bottom-right */
+/* Legend â€” bottom-right */
 .ad-map-legend {
   position: absolute;
   right: 14px;
@@ -842,7 +842,7 @@
     transition: none !important;
   }
 }
-/* Layer Mode Switcher Controls � top-center */
+/* Layer Mode Switcher Controls — top-center */
 .ad-map-switcher {
   position: absolute;
   top: 14px;

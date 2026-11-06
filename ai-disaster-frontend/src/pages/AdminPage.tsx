@@ -9,7 +9,6 @@ import {
   Clock,
   User,
   Search,
-  Filter,
   Radio,
   History,
   AlertOctagon

@@ -492,7 +492,7 @@
   .login-card::before,
   .login-badge-dot,
   .login-alert,
-  .login-submit:disabled {7
+  .login-submit:disabled {
     animation: none !important;
   }
   .login-submit,

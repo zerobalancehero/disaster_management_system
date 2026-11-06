@@ -11,9 +11,12 @@ interface RawUpdate {
 interface RawAssignment {
   id: string
   incidentId?: string
+  incidentTitle?: string
+  incidentLocation?: { latitude?: number; longitude?: number }
   teamId?: string
   team?: { id?: string }
-  status: string
+  status?: string
+  assignmentStatus?: string
   updates?: RawUpdate[]
   incident?: {
     id: string
@@ -35,28 +38,33 @@ interface RawAssignment {
 function mapAssignment(raw: RawAssignment): AssignmentView {
   const inc = raw.incident
   const incidentStatus = (inc?.verificationStatus ?? inc?.status ?? 'ASSIGNED') as import('../types').IncidentStatus
+  const status = (raw.assignmentStatus ?? raw.status ?? 'APPROVED') as AssignmentStatus
+  const lat = raw.incidentLocation?.latitude ?? inc?.latitude ?? inc?.lat ?? 0
+  const lon = raw.incidentLocation?.longitude ?? inc?.longitude ?? inc?.lon ?? 0
+  const title = raw.incidentTitle ?? inc?.title
+  const desc = inc?.description ?? ''
+  const type = inc?.disasterType ?? inc?.type ?? 'OTHER'
+
   return {
     id: raw.id,
     incidentId: raw.incidentId ?? inc?.id ?? '',
     teamId: raw.team?.id ?? raw.teamId ?? '',
-    status: raw.status as AssignmentStatus,
-    assignmentStatus: raw.status as AssignmentStatus,
+    status,
+    assignmentStatus: status,
     updates: (raw.updates ?? []).map((u) => ({
       at: u.updateTime ?? u.at ?? new Date().toISOString(),
       note: u.notes ?? u.note ?? '',
     })),
-    incident: inc
-      ? {
-          id: inc.id ?? raw.incidentId ?? '',
-          title: inc.title,
-          type: inc.disasterType ?? inc.type ?? 'OTHER',
-          description: inc.description ?? '',
-          lat: inc.latitude ?? inc.lat ?? 0,
-          lon: inc.longitude ?? inc.lon ?? 0,
-          status: incidentStatus,
-          createdAt: inc.reportedTime ?? inc.createdAt ?? new Date().toISOString(),
-        }
-      : undefined,
+    incident: {
+      id: inc?.id ?? raw.incidentId ?? '',
+      title,
+      type,
+      description: desc,
+      lat,
+      lon,
+      status: incidentStatus,
+      createdAt: inc?.reportedTime ?? inc?.createdAt ?? new Date().toISOString(),
+    },
   }
 }
 
