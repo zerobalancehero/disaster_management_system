@@ -83,6 +83,15 @@ public class GdacsAlertProvider implements AlertDataProvider {
                 return List.of();
             }
 
+            xmlContent = xmlContent.trim();
+            if (xmlContent.startsWith("\uFEFF")) {
+                xmlContent = xmlContent.substring(1);
+            }
+            int xmlStart = xmlContent.indexOf("<?xml");
+            if (xmlStart > 0) {
+                xmlContent = xmlContent.substring(xmlStart);
+            }
+
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
             dbf.setNamespaceAware(true);
             DocumentBuilder db = dbf.newDocumentBuilder();
@@ -122,7 +131,14 @@ public class GdacsAlertProvider implements AlertDataProvider {
         }
 
         String title = getTagText(item, "title");
+        if (title != null && title.length() > 250) {
+            title = title.substring(0, 247) + "...";
+        }
+
         String description = getTagText(item, "description");
+        if (description != null && description.length() > 2000) {
+            description = description.substring(0, 1997) + "...";
+        }
         String eventTypeStr = getTagText(item, "gdacs:eventtype");
         String alertLevelStr = getTagText(item, "gdacs:alertlevel");
         String pubDateStr = getTagText(item, "pubDate");
@@ -233,3 +249,4 @@ public class GdacsAlertProvider implements AlertDataProvider {
         }
     }
 }
+

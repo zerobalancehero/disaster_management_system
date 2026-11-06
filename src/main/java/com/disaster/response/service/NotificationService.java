@@ -9,6 +9,7 @@ import com.disaster.response.integration.notification.NotificationProvider;
 import com.disaster.response.repository.NotificationRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final List<NotificationProvider> notificationProviders;
 
+    @Autowired
     public NotificationService(
             NotificationRepository notificationRepository,
             List<NotificationProvider> notificationProviders) {
