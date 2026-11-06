@@ -18,6 +18,14 @@ export const SEVERITY_CONFIG: Record<
   Severity,
   { label: string; color: string; bg: string; border: string; text: string; glow: string }
 > = {
+  CRITICAL: {
+    label: 'Critical / Life Threat',
+    color: '#DC2626',
+    bg: 'bg-red-600/20',
+    border: 'border-red-600/60',
+    text: 'text-red-300',
+    glow: 'shadow-[0_0_15px_rgba(220,38,38,0.45)]',
+  },
   SEVERE: {
     label: 'Critical / Severe',
     color: '#EF4444',
@@ -33,6 +41,14 @@ export const SEVERITY_CONFIG: Record<
     border: 'border-orange-500/50',
     text: 'text-orange-400',
     glow: 'shadow-[0_0_15px_rgba(249,115,22,0.35)]',
+  },
+  MEDIUM: {
+    label: 'Medium Urgency',
+    color: '#F59E0B',
+    bg: 'bg-amber-500/15',
+    border: 'border-amber-500/50',
+    text: 'text-amber-300',
+    glow: 'shadow-[0_0_15px_rgba(245,158,11,0.25)]',
   },
   MODERATE: {
     label: 'Moderate',

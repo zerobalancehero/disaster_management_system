@@ -8,7 +8,8 @@ export type DisasterType =
   | 'WILDFIRE'
   | 'GENERAL_EMERGENCY'
 
-export type Severity = 'LOW' | 'MODERATE' | 'HIGH' | 'SEVERE'
+export type IncidentSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+export type Severity = 'LOW' | 'MEDIUM' | 'MODERATE' | 'HIGH' | 'SEVERE' | 'CRITICAL'
 
 export type IncidentStatus =
   | 'PENDING'
@@ -21,7 +22,7 @@ export interface IncidentReportRequest {
   title: string
   description: string
   disasterType: DisasterType
-  severity?: Severity
+  severity?: IncidentSeverity | string
   location: GeoPointDto
 }
 

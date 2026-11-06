@@ -54,8 +54,10 @@ export function QueryState({
 
 const BADGE_STYLES: Record<string, string> = {
   // Severity
+  CRITICAL: 'bg-red-600/20 text-red-300 border border-red-500/40 shadow-red-500/20',
   SEVERE: 'bg-red-500/10 text-red-400 border border-red-500/30 shadow-red-500/10',
   HIGH: 'bg-orange-500/10 text-orange-400 border border-orange-500/30 shadow-orange-500/10',
+  MEDIUM: 'bg-amber-500/10 text-amber-300 border border-amber-500/30 shadow-amber-500/10',
   MODERATE: 'bg-amber-500/10 text-amber-300 border border-amber-500/30 shadow-amber-500/10',
   LOW: 'bg-slate-500/10 text-slate-300 border border-slate-500/30',
   // Incident Status

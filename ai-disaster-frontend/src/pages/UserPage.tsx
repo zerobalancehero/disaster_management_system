@@ -20,6 +20,7 @@ import '../styles/UserPage.css'
 const schema = z.object({
   title: z.string().min(3, 'Title is required (min 3 characters)'),
   type: z.enum(['FLOOD', 'EARTHQUAKE', 'CYCLONE', 'LANDSLIDE', 'WILDFIRE', 'GENERAL_EMERGENCY']),
+  severity: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
   description: z.string().min(10, 'Describe the incident (min 10 characters)'),
   lat: z.number().min(-90).max(90),
   lon: z.number().min(-180).max(180),
@@ -74,6 +75,7 @@ export default function UserPage() {
     defaultValues: {
       title: 'Waterlogging & Street Flooding',
       type: 'FLOOD',
+      severity: 'MEDIUM',
       description:
         'Rising water levels observed blocking main road and residential ground floors.',
       lat: 13.0827,
@@ -104,6 +106,7 @@ export default function UserPage() {
         title: v.title,
         description: v.description,
         disasterType: v.type,
+        severity: v.severity || 'MEDIUM',
         location: { latitude: v.lat, longitude: v.lon },
       }),
     onSuccess: (data) => {
@@ -231,8 +234,22 @@ export default function UserPage() {
             </select>
           </div>
 
-          {/* Location preset + coords */}
+          {/* Incident Severity */}
           <div className="user-field">
+            <label className="user-label">Incident Severity</label>
+            <select className="user-select" {...register('severity')}>
+              <option value="LOW">Low (Minor disruption)</option>
+              <option value="MEDIUM">Medium (Moderate threat / water accumulation)</option>
+              <option value="HIGH">High (Immediate danger / structural risk)</option>
+              <option value="CRITICAL">Critical (Life-threatening / trapped persons)</option>
+            </select>
+            {errors.severity && (
+              <p className="user-error">{errors.severity.message}</p>
+            )}
+          </div>
+
+          {/* Location preset + coords */}
+          <div className="user-field user-field-full">
             <div className="user-preset-header">
               <label className="user-label" style={{ margin: 0 }}>
                 Location Presets
@@ -432,6 +449,7 @@ export default function UserPage() {
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-white">{r.title || 'Emergency Report'}</span>
                     <Badge text={r.disasterType || r.type || 'EMERGENCY'} />
+                    {r.severity && <Badge text={r.severity} />}
                   </div>
                   <span className={`text-xs px-2.5 py-0.5 rounded font-bold border ${statusColor}`}>
                     {status}
