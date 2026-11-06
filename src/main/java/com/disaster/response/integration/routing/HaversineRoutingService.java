@@ -6,7 +6,6 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
 @Service
-@Primary
 public class HaversineRoutingService implements RoutingService {
 
     // Average emergency response road speed: 45 km/h

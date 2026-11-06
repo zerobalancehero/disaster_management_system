@@ -110,6 +110,7 @@ type WeatherInfo = {
     temp: number | null
     feels: number | null
     humidity: number | null
+    rainfall: number | null
     pressure: number | null
     windSpeed: number | null
     windDeg: number | null
@@ -122,6 +123,7 @@ type WeatherInfo = {
     condition: string | null
     description: string | null
     name: string | null
+    isStale: boolean
 }
 
 const toDate = (v: unknown): Date | null => {
@@ -162,22 +164,28 @@ function extractWeather(data: Json): WeatherInfo {
         return v
     }
 
+    const rawTemp = num(get('temperatureCelsius', 'main.temp', 'temp', 'temperature'))
+    const temp = toC(rawTemp)
+    const feels = toC(num(get('main.feels_like', 'feels_like', 'feelsLike'))) ?? temp
+
     return {
-        temp: toC(num(get('main.temp', 'temp', 'temperature'))),
-        feels: toC(num(get('main.feels_like', 'feels_like', 'feelsLike'))),
-        humidity: num(get('main.humidity', 'humidity')),
+        temp,
+        feels,
+        humidity: num(get('humidityPercent', 'main.humidity', 'humidity')),
+        rainfall: num(get('rainfallMm', 'rainfall', 'rain.1h', 'rain.3h')),
         pressure: num(get('main.pressure', 'pressure')),
-        windSpeed: num(get('wind.speed', 'wind_speed', 'windSpeed')),
+        windSpeed: num(get('windSpeedKmh', 'wind.speed', 'wind_speed', 'windSpeed')),
         windDeg: num(get('wind.deg', 'wind_deg', 'windDirection')),
         visibility: num(get('visibility')),
         clouds: num(get('clouds.all', 'clouds', 'cloudiness')),
         uv: num(get('uvi', 'uv_index', 'uvIndex')),
         sunrise: toDate(get('sys.sunrise', 'sunrise')),
         sunset: toDate(get('sys.sunset', 'sunset')),
-        dt: toDate(get('dt', 'timestamp', 'lastUpdated')),
-        condition: str(get('weather.0.main', 'condition', 'weather')),
-        description: str(get('weather.0.description', 'description')),
-        name: str(get('name', 'city', 'location')),
+        dt: toDate(get('observationTime', 'dt', 'timestamp', 'lastUpdated')),
+        condition: str(get('weatherCondition', 'weather.0.main', 'condition', 'weather')),
+        description: str(get('freshnessNote', 'weather.0.description', 'description')),
+        name: str(get('name', 'city', 'location')) ?? (data.source ? String(data.source) : null),
+        isStale: Boolean(get('isStale')),
     }
 }
 
@@ -239,7 +247,7 @@ function WeatherPanel({ data }: { data: Json }) {
     const w = extractWeather(data)
 
     // If nothing meaningful was extracted, fall back to the original KV view.
-    if (w.temp == null && w.humidity == null && w.windSpeed == null) {
+    if (w.temp == null && w.humidity == null && w.windSpeed == null && w.rainfall == null) {
         return <KV data={data} />
     }
 
@@ -273,7 +281,7 @@ function WeatherPanel({ data }: { data: Json }) {
                     </div>
 
                     <div className="uo-wx-condition">
-                        {w.condition ?? 'Weather'}
+                        {w.condition ? w.condition.replace('_', ' ') : 'Weather'}
                     </div>
                     {w.description && (
                         <div className="uo-wx-desc">{w.description}</div>
@@ -295,6 +303,13 @@ function WeatherPanel({ data }: { data: Json }) {
                         value={`${Math.round(w.feels)}°C`}
                     />
                 )}
+                {w.rainfall != null && (
+                    <WxStat
+                        icon={<Droplets size={15} aria-hidden />}
+                        label="Precipitation"
+                        value={`${w.rainfall.toFixed(1)} mm`}
+                    />
+                )}
                 {w.humidity != null && (
                     <WxStat
                         icon={<Droplets size={15} aria-hidden />}
@@ -306,8 +321,7 @@ function WeatherPanel({ data }: { data: Json }) {
                     <WxStat
                         icon={<WindIcon size={15} aria-hidden />}
                         label="Wind"
-                        value={`${w.windSpeed.toFixed(1)} m/s${w.windDeg != null ? ` ${compass(w.windDeg)}` : ''
-                            }`}
+                        value={`${w.windSpeed.toFixed(1)} km/h${w.windDeg != null ? ` ${compass(w.windDeg)}` : ''}`}
                     />
                 )}
                 {w.pressure != null && (
@@ -366,11 +380,22 @@ function WeatherPanel({ data }: { data: Json }) {
                 </div>
             )}
 
-            {w.dt && (
-                <div className="uo-wx-footer">
-                    <Clock size={11} aria-hidden /> Updated {w.dt.toLocaleTimeString()}
-                </div>
-            )}
+            <div className="uo-wx-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>
+                    <Clock size={11} aria-hidden /> {w.dt ? `Updated ${w.dt.toLocaleTimeString()}` : 'Live feed active'}
+                </span>
+                <span style={{
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    letterSpacing: '0.05em',
+                    backgroundColor: w.isStale ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.2)',
+                    color: w.isStale ? '#fcd34d' : '#6ee7b7'
+                }}>
+                    {w.isStale ? 'STALE / CACHED' : 'LIVE DATA'}
+                </span>
+            </div>
         </div>
     )
 }

@@ -48,6 +48,7 @@ export default function ResponderAssignments() {
   const qc = useQueryClient()
   const [team, setTeam] = useState<string | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
+  const [sitrepText, setSitrepText] = useState<Record<string, string>>({})
 
   const list = useQuery<AssignmentView[], ApiError>({
     queryKey: ['my-assignments'],
@@ -62,6 +63,22 @@ export default function ResponderAssignments() {
       location: await gps(),
     }),
     onSettled: () => void qc.invalidateQueries({ queryKey: ['my-assignments'] }),
+  })
+
+  const postSitrep = useMutation<unknown, ApiError, { id: string; message: string; status: AssignmentStatus }>({
+    mutationFn: async ({ id, message, status }) => {
+      const coords = await gps()
+      return responderApi.addUpdate(id, {
+        status,
+        message,
+        latitude: coords?.latitude,
+        longitude: coords?.longitude,
+      })
+    },
+    onSuccess: (_d, { id }) => {
+      setSitrepText((prev) => ({ ...prev, [id]: '' }))
+      qc.invalidateQueries({ queryKey: ['my-assignments'] })
+    },
   })
 
   const duty = useMutation<unknown, ApiError, 'AVAILABLE' | 'OFF_DUTY'>({
@@ -203,6 +220,64 @@ export default function ResponderAssignments() {
                 <Badge text={a.status} />
               </div>
               <p className="responder-item-desc">{a.incident.description}</p>
+
+              {/* Updates & Field Logs */}
+              {a.updates && a.updates.length > 0 && (
+                <div style={{ marginTop: 12, padding: 12, background: 'rgba(0, 0, 0, 0.25)', borderRadius: 10, border: '1px solid var(--resp-edge)' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--resp-cyan)', marginBottom: 8 }}>
+                    Field Situation Reports ({a.updates.length})
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {a.updates.map((u, i) => (
+                      <div key={i} style={{ fontSize: 12, borderLeft: '2px solid var(--resp-accent)', paddingLeft: 8 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--resp-muted)', fontSize: 11 }}>
+                          <span>{u.actorName || 'Responder Squad'} · <strong style={{ color: 'var(--resp-text)' }}>{u.status}</strong></span>
+                          <span>{u.timestamp ? new Date(u.timestamp).toLocaleTimeString() : 'Recent'}</span>
+                        </div>
+                        <div style={{ color: 'var(--resp-text)', marginTop: 2 }}>{u.message}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Field Note / SITREP Input */}
+              {a.status !== 'RESOLVED' && (
+                <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    placeholder="Field situational update (e.g. 4 persons rescued, route cleared)..."
+                    value={sitrepText[a.id] || ''}
+                    onChange={(e) => setSitrepText((prev) => ({ ...prev, [a.id]: e.target.value }))}
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      border: '1px solid var(--resp-edge)',
+                      background: 'rgba(0, 0, 0, 0.35)',
+                      color: '#fff',
+                      fontSize: 13,
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && sitrepText[a.id]?.trim()) {
+                        postSitrep.mutate({ id: a.id, message: sitrepText[a.id].trim(), status: a.status })
+                      }
+                    }}
+                  />
+                  <Btn
+                    className="responder-btn responder-btn-sm"
+                    disabled={postSitrep.isPending || !sitrepText[a.id]?.trim()}
+                    onClick={() => {
+                      if (sitrepText[a.id]?.trim()) {
+                        postSitrep.mutate({ id: a.id, message: sitrepText[a.id].trim(), status: a.status })
+                      }
+                    }}
+                  >
+                    Post SITREP
+                  </Btn>
+                </div>
+              )}
+
               <div className="responder-item-footer">
                 <a
                   className="responder-map-link"

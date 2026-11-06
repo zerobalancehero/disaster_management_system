@@ -87,14 +87,14 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints
                 .requestMatchers("/api/v1/auth/**").permitAll()
+                .requestMatchers("/api/v1/weather/**").permitAll()
+                .requestMatchers("/api/v1/alerts/**").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/actuator/**").permitAll()
 
                 // USER, RESPONDER, ADMIN endpoints
-                .requestMatchers("/api/v1/weather/**").hasAnyRole("USER", "RESPONDER", "ADMIN")
-                .requestMatchers("/api/v1/alerts/**").hasAnyRole("USER", "RESPONDER", "ADMIN")
-                .requestMatchers("/api/v1/incidents/reports", "/api/v1/incidents/my-reports/**").hasAnyRole("USER", "RESPONDER", "ADMIN")
-                .requestMatchers("/api/v1/users/me").authenticated()
+                .requestMatchers("/api/v1/incidents/**").hasAnyRole("USER", "RESPONDER", "ADMIN")
+                .requestMatchers("/api/v1/users/**").authenticated()
 
                 // RESPONDER & ADMIN endpoints
                 .requestMatchers("/api/v1/risks/**").hasAnyRole("RESPONDER", "ADMIN")

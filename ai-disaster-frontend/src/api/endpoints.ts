@@ -37,7 +37,11 @@ export const risksApi = {
   regions: (params?: Json) => many(api.get('/risks/regions', q(params))),
   region: (id: string) => one(api.get(`/risks/regions/${id}`)),
   history: (params?: Json) => many(api.get('/risks/history', q(params))),
-  calculate: (b?: Json) => one(api.post('/risks/calculate', b ?? {})), // UNRESOLVED: request body
+  modelInfo: () => one(api.get('/risks/model-info')),
+  calculate: (regionId: string, disasterType = 'FLOOD', horizon = 'NEXT_24H') =>
+    one(api.post('/risks/calculate', null, { params: { regionId, disasterType, horizon } })),
+  calculateAll: (disasterType = 'FLOOD', horizon = 'NEXT_24H') =>
+    many(api.post('/risks/calculate-all', null, { params: { disasterType, horizon } })),
 }
 export const responderApi = {
   assignments: () => many(api.get('/responder/my-assignments')),
@@ -45,12 +49,20 @@ export const responderApi = {
   // Contract per spec: { status, message, location } — NOT newStatus/notes.
   setStatus: (id: string, b: { status: AssignmentStatus; message: string; location: Loc | null }) =>
     one(api.patch(`/responder/my-assignments/${id}/status`, b)),
-  addUpdate: (id: string, b: { message: string; latitude?: number; longitude?: number }) =>
-    one(api.post(`/responder/my-assignments/${id}/updates`, b)), // UNRESOLVED: location shape
+  addUpdate: (id: string, b: { status?: string; message: string; location?: Loc | null; latitude?: number; longitude?: number }) => {
+    const payload = {
+      status: b.status || 'IN_PROGRESS',
+      message: b.message,
+      location: b.location ?? (b.latitude != null && b.longitude != null ? { latitude: b.latitude, longitude: b.longitude } : null)
+    }
+    return one(api.post(`/responder/my-assignments/${id}/updates`, payload))
+  },
   setTeamStatus: (availabilityStatus: 'AVAILABLE' | 'OFF_DUTY') =>
     one(api.patch('/responder/team/status', { availabilityStatus })),
   notifications: () => many(api.get('/responder/notifications')),
   markRead: (id: string) => one(api.patch(`/responder/notifications/${id}/read`)),
+  userNotifications: () => many(api.get('/users/notifications')),
+  markUserRead: (id: string) => one(api.patch(`/users/notifications/${id}/read`)),
 }
 export const adminApi = {
   dashboard: () => one<Json>(api.get('/admin/dashboard')),

@@ -11,11 +11,16 @@ export type AssignmentStatus =
 export type AvailabilityStatus = 'AVAILABLE' | 'BUSY' | 'OFF_DUTY'
 
 export interface ResponseUpdateDto {
+  id?: string
+  actorId?: string
+  actorName?: string
+  status?: string
+  message?: string
+  note?: string
+  location?: GeoPointDto
+  timestamp?: string
   at?: string
   updateTime?: string
-  note?: string
-  message?: string
-  location?: GeoPointDto
 }
 
 export interface AssignmentResponse {

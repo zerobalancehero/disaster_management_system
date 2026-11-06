@@ -46,3 +46,18 @@ export const calculateRisk = async (
   })
   return r.data
 }
+
+export const calculateAllRegionsRisk = async (
+  disasterType: DisasterType = 'FLOOD',
+  horizon: PredictionHorizon = 'NEXT_24H'
+): Promise<RiskAssessmentResponse[]> => {
+  const r = await api.post<RiskAssessmentResponse[]>('/risks/calculate-all', null, {
+    params: { disasterType, horizon },
+  })
+  return Array.isArray(r.data) ? r.data : []
+}
+
+export const getRiskModelInfo = async (): Promise<any> => {
+  const r = await api.get('/risks/model-info')
+  return r.data
+}

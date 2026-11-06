@@ -52,6 +52,12 @@ public class RegionalRiskController {
         return ResponseEntity.ok(PagedResponse.from(riskAssessmentService.getRiskHistory(regionId, pageable)));
     }
 
+    @GetMapping("/model-info")
+    @Operation(summary = "Get active AI model registry status and metadata")
+    public ResponseEntity<com.disaster.response.dto.risk.RiskModelInfoResponse> getModelInfo() {
+        return ResponseEntity.ok(riskAssessmentService.getModelInfo());
+    }
+
     @PostMapping("/calculate")
     @Operation(summary = "Trigger on-demand AI risk calculation for a region and hazard")
     @PreAuthorize("hasRole('ADMIN')")
@@ -60,5 +66,14 @@ public class RegionalRiskController {
             @RequestParam(name = "disasterType", defaultValue = "FLOOD") DisasterType disasterType,
             @RequestParam(name = "horizon", defaultValue = "NEXT_24H") PredictionHorizon horizon) {
         return ResponseEntity.ok(riskAssessmentService.calculateAndSaveRisk(regionId, disasterType, horizon));
+    }
+
+    @PostMapping("/calculate-all")
+    @Operation(summary = "Trigger on-demand AI risk calculation across all monitored regions")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<RiskAssessmentResponse>> calculateAllRegionsRisk(
+            @RequestParam(name = "disasterType", defaultValue = "FLOOD") DisasterType disasterType,
+            @RequestParam(name = "horizon", defaultValue = "NEXT_24H") PredictionHorizon horizon) {
+        return ResponseEntity.ok(riskAssessmentService.assessAllRegionsRisk(disasterType, horizon));
     }
 }

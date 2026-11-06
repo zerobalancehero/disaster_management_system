@@ -68,7 +68,7 @@ app:
       timeout-seconds: 5
     gdacs:
       base-url: ${GDACS_URL:https://www.gdacs.org/xml/rss.xml}
-      enabled: ${GDACS_ENABLED:false}
+      enabled: ${GDACS_ENABLED:true}
       timeout-seconds: 5
     imd:
       base-url: ${IMD_URL:https://api.imd.gov.in/public}
@@ -76,9 +76,9 @@ app:
       enabled: ${IMD_ENABLED:false}
       timeout-seconds: 5
     osrm:
-      base-url: ${OSRM_URL:http://localhost:5000}
-      enabled: ${OSRM_ENABLED:false}
-      timeout-seconds: 3
+      base-url: ${OSRM_URL:https://router.project-osrm.org}
+      enabled: ${OSRM_ENABLED:true}
+      timeout-seconds: 4
     notifications:
       email-enabled: ${EMAIL_NOTIFICATIONS_ENABLED:false}
       sms-enabled: ${SMS_NOTIFICATIONS_ENABLED:false}

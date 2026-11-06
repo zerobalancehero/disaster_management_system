@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -11,9 +11,10 @@ import {
   useMapEvents,
 } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
-import { getActiveAlerts, reportIncident } from '../api/alerts.api'
+import { getActiveAlerts, getSafetyInstructions, reportIncident } from '../api/alerts.api'
+import { incidentsApi } from '../api/endpoints'
 import { Badge, Btn, Card, QueryState } from '../components/ui'
-import type { Alert, ApiError } from '../types'
+import type { Alert, ApiError, Incident, SafetyInstructionResponse, DisasterType } from '../types'
 import '../styles/UserPage.css'
 
 const schema = z.object({
@@ -54,6 +55,7 @@ function MapRecenter({ lat, lon }: { lat: number; lon: number }) {
 }
 
 export default function UserPage() {
+  const qc = useQueryClient()
   const alerts = useQuery<Alert[], ApiError>({
     queryKey: ['alerts'],
     queryFn: getActiveAlerts,
@@ -79,6 +81,23 @@ export default function UserPage() {
     },
   })
 
+  const currentType = watch('type')
+
+  const instructions = useQuery<SafetyInstructionResponse[], ApiError>({
+    queryKey: ['safety-instructions', currentType],
+    queryFn: () => getSafetyInstructions(currentType as DisasterType),
+    staleTime: 60_000,
+  })
+
+  const myReports = useQuery<Incident[], ApiError>({
+    queryKey: ['my-reports'],
+    queryFn: async () => {
+      const res = await incidentsApi.mine()
+      return Array.isArray(res) ? (res as unknown as Incident[]) : []
+    },
+    refetchInterval: 15_000,
+  })
+
   const m = useMutation({
     mutationFn: (v: Form) =>
       reportIncident({
@@ -92,6 +111,7 @@ export default function UserPage() {
         `Report #${(data as { id: string }).id.slice(0, 8)} submitted successfully. It is now PENDING admin verification.`
       )
       reset()
+      qc.invalidateQueries({ queryKey: ['my-reports'] })
     },
     onError: (e: ApiError) => setMsg(`Submission Failed: ${e.message}`),
   })
@@ -342,6 +362,95 @@ export default function UserPage() {
             {isError ? '⚠️' : '✅'} {msg}
           </div>
         )}
+      </Card>
+
+      {/* ── Safety Instructions & Survival Protocol ─── */}
+      <Card className="user-card">
+        <div className="user-card-header">
+          <div className="user-card-header-left">
+            <span className="user-icon">🛡️</span>
+            <h2 className="user-card-title">Live Safety & Evacuation Protocols</h2>
+          </div>
+          <span className="user-card-subtitle">Hazard: {currentType.replace('_', ' ')}</span>
+        </div>
+
+        <QueryState
+          loading={instructions.isLoading}
+          error={instructions.error}
+          empty={instructions.data?.length === 0}
+          retry={() => void instructions.refetch()}
+        />
+
+        <div className="space-y-4">
+          {instructions.data?.map((inst) => (
+            <div key={inst.id} className="p-4 rounded-lg bg-surface/80 border border-edge">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold text-ink text-sm sm:text-base">{inst.title}</h3>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-sky-500/20 text-sky-300">
+                  {inst.targetAudience.replace('_', ' ')}
+                </span>
+              </div>
+              <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-line">{inst.instructionText}</p>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {/* ── Citizen Submitted Reports Tracking ──────── */}
+      <Card className="user-card">
+        <div className="user-card-header">
+          <div className="user-card-header-left">
+            <span className="user-icon">📋</span>
+            <h2 className="user-card-title">My Emergency Reports</h2>
+          </div>
+          <span className="user-card-subtitle">{myReports.data?.length ?? 0} submitted</span>
+        </div>
+
+        <QueryState
+          loading={myReports.isLoading}
+          error={myReports.error}
+          empty={myReports.data?.length === 0}
+          retry={() => void myReports.refetch()}
+        />
+
+        <div className="space-y-3">
+          {myReports.data?.map((r) => {
+            const status = r.verificationStatus || r.status || 'PENDING'
+            const statusColor =
+              status === 'VERIFIED'
+                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                : status === 'REJECTED'
+                ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+
+            const timeStr = r.reportedTime || r.createdAt
+            const timeLabel = timeStr ? new Date(timeStr).toLocaleString() : 'Recently'
+
+            return (
+              <div key={r.id} className="p-4 rounded-lg bg-surface/70 border border-edge space-y-2">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-white">{r.title || 'Emergency Report'}</span>
+                    <Badge text={r.disasterType || r.type || 'EMERGENCY'} />
+                  </div>
+                  <span className={`text-xs px-2.5 py-0.5 rounded font-bold border ${statusColor}`}>
+                    {status}
+                  </span>
+                </div>
+                <p className="text-sm text-slate-300">{r.description}</p>
+                {r.rejectionReason && (
+                  <p className="text-xs text-rose-300 bg-rose-950/40 p-2 rounded border border-rose-900/50">
+                    <strong>Rejection reason:</strong> {r.rejectionReason}
+                  </p>
+                )}
+                <div className="flex items-center justify-between text-xs text-slate-400 pt-1 border-t border-edge/50">
+                  <span>📍 Coordinates: {r.lat != null ? r.lat.toFixed(4) : '—'}, {r.lon != null ? r.lon.toFixed(4) : '—'}</span>
+                  <span>Reported {timeLabel}</span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
       </Card>
     </div>
   )

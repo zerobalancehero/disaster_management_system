@@ -3,7 +3,13 @@ app:
   seed:
     enabled: true
   ml:
-    mock-enabled: true
+    mock-enabled: false
+  integrations:
+    gdacs:
+      enabled: true
+    osrm:
+      enabled: true
+      base-url: https://router.project-osrm.org
 
 spring:
   jpa:

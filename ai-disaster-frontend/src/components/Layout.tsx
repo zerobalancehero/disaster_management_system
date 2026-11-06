@@ -1,7 +1,9 @@
 import { useState, useSyncExternalStore } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { Activity, ClipboardList, LayoutDashboard, LogOut, Menu, PanelLeft, PlusCircle, Radio, ShieldAlert, WifiOff, X } from 'lucide-react'
+import { Activity, Bell, ClipboardList, LayoutDashboard, LogOut, Menu, PanelLeft, PlusCircle, Radio, ShieldAlert, WifiOff, X } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../features/auth/AuthContext'
+import { responderApi } from '../api/endpoints'
 import { config } from '../lib/config'
 import type { Role } from '../types'
 
@@ -27,10 +29,35 @@ function useOnline() {
 export default function Layout() {
   const { user, logout } = useAuth()
   const nav = useNavigate()
+  const qc = useQueryClient()
   const [open, setOpen] = useState(false)
   const [slim, setSlim] = useState(false)
+  const [showNotifs, setShowNotifs] = useState(false)
   const isOnline = useOnline()
   const role = user?.role ?? 'USER'
+
+  const notifsQ = useQuery({
+    queryKey: ['notifications', user?.id],
+    queryFn: async () => {
+      try {
+        const res = role === 'RESPONDER' ? await responderApi.notifications() : await responderApi.userNotifications()
+        return Array.isArray(res) ? res : []
+      } catch {
+        return []
+      }
+    },
+    enabled: !!user,
+    refetchInterval: 20_000,
+  })
+
+  const markReadMutation = useMutation({
+    mutationFn: (id: string) => (role === 'RESPONDER' ? responderApi.markRead(id) : responderApi.markUserRead(id)),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['notifications', user?.id] })
+    },
+  })
+
+  const unreadCount = (notifsQ.data ?? []).filter((n: any) => !n.read && !n.isRead).length
 
   const links = (
     <nav aria-label="Primary" className="flex flex-col gap-1 p-3">
@@ -70,6 +97,66 @@ export default function Layout() {
           <button className="p-2 md:hidden" aria-label="Open menu" onClick={() => setOpen(true)}><Menu size={20} /></button>
           <button className="hidden p-2 text-mute hover:text-ink md:block" aria-label="Collapse sidebar" onClick={() => setSlim((s) => !s)}><PanelLeft size={18} /></button>
           <div className="ml-auto flex items-center gap-3 text-sm">
+            {/* Notification Bell */}
+            <div className="relative">
+              <button
+                type="button"
+                className="relative p-2 text-mute hover:text-ink rounded-lg hover:bg-raised transition-colors"
+                aria-label="Notifications"
+                onClick={() => setShowNotifs((s) => !s)}
+              >
+                <Bell size={18} />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-crit text-[10px] font-bold text-white">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {showNotifs && (
+                <div className="absolute right-0 mt-2 w-80 rounded-xl border border-edge bg-side p-3 shadow-2xl z-50 space-y-2">
+                  <div className="flex items-center justify-between pb-2 border-b border-edge">
+                    <span className="font-semibold text-xs text-ink uppercase tracking-wider">Alerts & Notifications</span>
+                    <span className="text-[11px] text-mute">{unreadCount} unread</span>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto space-y-2">
+                    {(notifsQ.data ?? []).length === 0 ? (
+                      <p className="text-xs text-mute py-4 text-center">No notifications yet</p>
+                    ) : (
+                      (notifsQ.data ?? []).map((n: any) => {
+                        const isUnread = !n.read && !n.isRead
+                        return (
+                          <div
+                            key={n.id}
+                            className={`p-2.5 rounded-lg border text-xs space-y-1 transition-colors ${
+                              isUnread ? 'bg-raised/80 border-sky-500/30' : 'bg-surface/40 border-edge/50'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold text-white">{n.title}</span>
+                              {isUnread && (
+                                <button
+                                  type="button"
+                                  className="text-[10px] text-sky-400 hover:underline"
+                                  onClick={() => markReadMutation.mutate(n.id)}
+                                >
+                                  Mark read
+                                </button>
+                              )}
+                            </div>
+                            <p className="text-slate-300 text-[11px] leading-snug">{n.message}</p>
+                            <span className="text-[10px] text-slate-500 block">
+                              {n.createdAt ? new Date(n.createdAt).toLocaleTimeString() : 'Recently'}
+                            </span>
+                          </div>
+                        )
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="text-right leading-tight">
               <div className="font-semibold">{user?.name}</div>
               <div className={`mono text-[11px] ${ACCENT[role]}`}>{role}</div>
