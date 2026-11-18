@@ -64,7 +64,7 @@ export default function LoginPage() {
 
       {/* Background video */}
       <video className="login-bg-video" autoPlay muted loop playsInline>
-        <source src="/videos/login-bg.mp4" type="video/mp4" />
+        <source src="/videos/login-bg2.mp4" type="video/mp4" />
         Your browser does not support video playback.
       </video>
 

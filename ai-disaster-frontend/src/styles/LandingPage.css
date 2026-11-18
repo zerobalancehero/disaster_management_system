@@ -1,0 +1,151 @@
+/* ============================================================
+   LandingPage.css — Tactical Cyber Glassmorphic Theme
+   Enhanced with Breathing Room, Glow, and Desktop Elegance
+   ============================================================ */
+
+.landing-container {
+  --color-primary: #e0fdff;
+  --color-primary-container: #00f2fe;
+  --color-primary-fixed-dim: #00dce6;
+  --color-secondary: #7bd0ff;
+  --color-secondary-container: #00a6e0;
+  --color-tertiary: #fff5ee;
+  --color-tertiary-fixed-dim: #ffb95f;
+  --color-surface: #10131d;
+  --color-surface-container: #1c1f2a;
+  --color-surface-container-high: #262a35;
+  --color-surface-container-low: #181b26;
+  --color-surface-container-lowest: #0a0e18;
+  --color-on-surface: #e0e2f1;
+  --color-on-surface-variant: #b9cacb;
+  --color-error: #ffb4ab;
+  --color-error-container: #93000a;
+  --color-outline-variant: #3a494b;
+
+  position: relative;
+  min-height: 100vh;
+  width: 100%;
+  background-color: var(--color-surface-container-lowest);
+  color: var(--color-on-surface);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+  user-select: none;
+}
+
+/* Ambient Tactical Grid Overlay Lines */
+.landing-grid-lines {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background-image: radial-gradient(rgba(0, 242, 254, 0.15) 1px, transparent 1px);
+  background-size: 28px 28px;
+  opacity: 0.15;
+}
+
+/* Shader canvas container */
+.shader-canvas-container {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.85;
+}
+
+/* Marquee Animation */
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: marquee 28s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Radar Sweep Rotation */
+@keyframes radarSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-radar {
+  animation: radarSpin 4s linear infinite;
+  transform-origin: center;
+}
+
+/* Typography styles */
+.font-headline {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+}
+
+.font-telemetry {
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Glassmorphism Card Hover Effects */
+.landing-interactive-card {
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.landing-interactive-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(0, 242, 254, 0.45);
+  box-shadow: 0 16px 36px -10px rgba(0, 0, 0, 0.7),
+    0 0 24px -6px rgba(0, 242, 254, 0.25);
+}
+
+/* ============================================================
+   LandingPage.css — Professional Spacing & Card Interactions
+   ============================================================ */
+
+/* Interactive card hover — tactile lift + glow border */
+.landing-interactive-card {
+  transition:
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+  will-change: transform;
+}
+
+.landing-interactive-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(0, 242, 254, 0.35) !important;
+  box-shadow:
+    0 16px 40px -16px rgba(0, 242, 254, 0.2),
+    0 0 0 1px rgba(0, 242, 254, 0.08) inset;
+}
+
+/* Smooth scroll for in-page anchors */
+html { scroll-behavior: smooth; }
+
+/* Reduced motion — respect user preferences */
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee,
+  .animate-radar,
+  .landing-interactive-card {
+    animation: none !important;
+    transition: none !important;
+  }
+  .landing-interactive-card:hover {
+    transform: none;
+  }
+}

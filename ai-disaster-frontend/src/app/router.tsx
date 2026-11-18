@@ -1,8 +1,9 @@
 import { lazy, Suspense } from 'react'
 import { createBrowserRouter } from 'react-router-dom'
 import Layout from '../components/Layout'
-import { HomeRedirect, RequireRole } from '../features/auth/guards'
+import { RequireRole } from '../features/auth/guards'
 import LoginPage from '../pages/LoginPage'
+import LandingPage from '../pages/LandingPage'
 
 const UserOverview = lazy(() => import('../pages/user/UserOverview'))
 const UserPage = lazy(() => import('../pages/UserPage'))            // existing report form
@@ -20,7 +21,7 @@ const area = (role: 'USER' | 'RESPONDER' | 'ADMIN', base: string, kids: { index?
 })
 
 export const router = createBrowserRouter([
-  { path: '/', element: <HomeRedirect /> },
+  { path: '/', element: <LandingPage /> },
   { path: '/login', element: <LoginPage /> },
   { path: '/forbidden', element: <Forbidden /> },
   area('USER', '/user', [{ index: true, element: <UserOverview /> }, { path: 'report', element: <UserPage /> }]),

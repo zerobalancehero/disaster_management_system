@@ -23,7 +23,12 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('disaster_token')
       localStorage.removeItem('disaster_user')
-      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+      // Only redirect to /login if user was inside protected app areas, not on landing page
+      if (
+        typeof window !== 'undefined' &&
+        window.location.pathname !== '/login' &&
+        window.location.pathname !== '/'
+      ) {
         window.location.href = '/login'
       }
     }
