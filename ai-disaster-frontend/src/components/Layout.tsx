@@ -162,7 +162,7 @@ export default function Layout() {
               <div className={`mono text-[11px] ${ACCENT[role]}`}>{role}</div>
             </div>
             <button className="flex min-h-11 items-center gap-2 rounded-lg border border-edge px-3 text-mute hover:border-crit hover:text-crit"
-              onClick={async () => { await logout(); nav('/login', { replace: true }) }}>
+              onClick={async () => { await logout(); nav('/', { replace: true }) }}>
               <LogOut size={16} /> <span className="hidden sm:inline">Log out</span>
             </button>
           </div>
